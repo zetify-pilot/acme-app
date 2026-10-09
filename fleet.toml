@@ -1,0 +1,17 @@
+# What this repository is, for the fleet that reads it.
+#
+# `fleet.toml` is the ONE repository-side source for how the command tier behaves here.
+# `[fleet.commands] namespace` is the prefix every command is typed under and every
+# cross-reference in the shipped procedures is rewritten to: /fleet:check, and so on.
+# `set` is the depth of the work loop this repository carries (`core` is the generic loop and
+# everything it names). Undeclared, the tier renders under its own namespace and ships whole.
+[fleet]
+
+[fleet.commands]
+namespace = "fleet"
+set = "core"
+
+[fleet.structure]
+# This repository asserts none of the command tree's own doc-parity invariants; add your own
+# `[[fleet.structure.hygiene_doc_parity]]` tables here as the corpus grows.
+hygiene_doc_parity = []

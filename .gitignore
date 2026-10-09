@@ -1,3 +1,5 @@
 __pycache__/
 *.egg-info/
 .venv/
+# the tier's run state (`fleet init`)
+.claude/run/
