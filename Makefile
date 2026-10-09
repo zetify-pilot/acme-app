@@ -52,7 +52,7 @@ generate-page-specs:
 
 # the static checks a commit must pass
 lint:
-	@echo "make lint: not configured for this repository — see the Makefile header" >&2; exit 2
+	python3 -m compileall -q app tests
 
 # the static checks CI runs, where they exceed `lint`
 lint-ci:
@@ -68,7 +68,7 @@ pre-commit-dry:
 
 # the lane's fast mechanical guards, run before the first push — the same checks CI runs
 preflight:
-	@echo "make preflight: not configured for this repository — see the Makefile header" >&2; exit 2
+	$(MAKE) lint test
 
 # reset and seed the running stack
 reseed:
@@ -80,7 +80,7 @@ seed:
 
 # every suite, the CI equivalent
 test:
-	@echo "make test: not configured for this repository — see the Makefile header" >&2; exit 2
+	python3 -m pytest -q
 
 # the lane that needs a database up
 test-db:
@@ -96,7 +96,7 @@ test-one:
 
 # the fast unit lane, no services
 test-unit:
-	@echo "make test-unit: not configured for this repository — see the Makefile header" >&2; exit 2
+	python3 -m pytest -q
 
 # the type checker over the whole tree
 typecheck:
