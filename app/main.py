@@ -1,13 +1,15 @@
 """A minimal in-memory task list."""
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 app = FastAPI(title="Tasks")
 
+MAX_TITLE_LENGTH = 200
+
 
 class TaskIn(BaseModel):
-    title: str
+    title: str = Field(max_length=MAX_TITLE_LENGTH)
 
     @field_validator("title")
     @classmethod
