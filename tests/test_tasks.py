@@ -20,3 +20,17 @@ def test_complete() -> None:
 
 def test_complete_unknown_task_is_404() -> None:
     assert client.post("/tasks/9999/done").status_code == 404
+
+
+def test_create_with_empty_title_is_rejected() -> None:
+    before = client.get("/tasks").json()
+    response = client.post("/tasks", json={"title": ""})
+    assert response.status_code == 422
+    assert client.get("/tasks").json() == before
+
+
+def test_create_with_whitespace_only_title_is_rejected() -> None:
+    before = client.get("/tasks").json()
+    response = client.post("/tasks", json={"title": "   "})
+    assert response.status_code == 422
+    assert client.get("/tasks").json() == before

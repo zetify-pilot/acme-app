@@ -1,13 +1,20 @@
 """A minimal in-memory task list."""
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 app = FastAPI(title="Tasks")
 
 
 class TaskIn(BaseModel):
     title: str
+
+    @field_validator("title")
+    @classmethod
+    def _title_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("title must have at least one non-space character")
+        return value
 
 
 class Task(TaskIn):
