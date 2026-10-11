@@ -6,6 +6,9 @@
 # `set` is the depth of the work loop this repository carries (`core` is the generic loop and
 # everything it names). Undeclared, the tier renders under its own namespace and ships whole.
 [fleet]
+# The board's command vocabulary: the command each finding offers, the drive box, the shape
+# box and the catalogue. Without it every board row reads "No command".
+board_guidance = "knowledge/board-guidance.json"
 
 [fleet.commands]
 namespace = "fleet"

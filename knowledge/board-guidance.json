@@ -1,0 +1,376 @@
+{
+  "actionCommands": {
+    "program_decompose": "/fleet:program:decompose {id}",
+    "program_deliver": "/fleet:program:deliver {id}",
+    "program_ship": "/fleet:program:ship {id}",
+    "slice_create": "/fleet:slice:create {id}",
+    "slice_verified_by": "/fleet:slice:edit {id} --verified-by",
+    "slice_depends_on": "/fleet:slice:edit {id} --depends-on",
+    "slice_bar_author": "/fleet:slice:edit {id} --bar",
+    "prd_create": "/fleet:prd:create {id}",
+    "prd_create_in_slice": "/fleet:prd:create {id}",
+    "requirement_startable": "/fleet:route {id}",
+    "capability_unshipped": "/fleet:route {id}"
+  },
+  "nextCommand": {
+    "stub": "/fleet:prd:create {id}",
+    "prd-drafted": "/fleet:prd:design {id}",
+    "designed": "/fleet:prd:plan {id}",
+    "planned": "/fleet:prd:implement {id}"
+  },
+  "fleet": {
+    "statuses": [
+      "planned"
+    ],
+    "actor": "the fleet",
+    "wait": "Waiting for the fleet to implement",
+    "note": "The fleet only implements — the daemon dispatches a planned PRD and never runs prd:create, prd:design or prd:plan — so those rows report status instead of handing you a command you should not run."
+  },
+  "shape": {
+    "program": {
+      "fleet": "/fleet:program:shape {id}",
+      "terminal": "/fleet:program:decompose {id}"
+    },
+    "slice": {
+      "fleet": "/fleet:slice:refine {id}",
+      "terminal": "/fleet:slice:edit {id}"
+    },
+    "prd": {
+      "fleet": "/fleet:prd:fill {id}",
+      "terminal": "/fleet:prd:create {id}"
+    }
+  },
+  "unbuilt": [],
+  "groups": {
+    "planning": {
+      "title": "In flight, and your move",
+      "blurb": "A live PRD sitting at a planning stage. The fleet only implements — it never runs prd:create, prd:design or prd:plan — so these wait on you or on a delivery cycle."
+    },
+    "advance": {
+      "title": "With the fleet",
+      "blurb": "Planned PRDs the fleet dispatches and implements. Nothing for you to do here — this is the board telling you it is moving without you."
+    }
+  },
+  "baselines": [],
+  "howLabel": {
+    "board": "a page hands it to you",
+    "typed": "you type it to start a session",
+    "fleet": "the fleet dispatches it"
+  },
+  "catalogueScan": {
+    "dir": ".claude/commands/fleet",
+    "prefix": "/fleet:",
+    "sep": ":"
+  },
+  "catalogue": [
+    [
+      "/fleet:route",
+      "—",
+      "Anything new that might be built. It classifies it — program, slice, PRD, task, bug or idea — and files it. The one entry point when you are unsure.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:create",
+      "program",
+      "A result someone gets has no home yet. Adds a row to the program register.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:decompose",
+      "program",
+      "Work backwards from a program: what has to exist for this to be true? Produces the gaps and their build order.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:deliver",
+      "program",
+      "One delivery cycle on a program already in execution. Releases what is ready, chases stalls, and asks you about anything blocking.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:ship",
+      "program",
+      "Close a program whose proof has held. Checks the proof drove the whole composed thread, not one lane of it.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:shape",
+      "program",
+      "Shape a program that is only a row, from its page: the narrative, the proof, the decomposition and the cuts, asked through the fleet's question channel and landed as one PR. Never typed.",
+      [
+        "fleet",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:slice:create",
+      "slice",
+      "Cut a planning slice inside a program — one feature, one capability, or the gaps for one customer.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:slice:edit",
+      "slice",
+      "Change what a cut waits on, which run proves it, or the sentence that says when it is done.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:slice:refine",
+      "slice",
+      "Refine a slice cut from a brief, from its page: the promise somebody can check, its rows, its bar. Never typed.",
+      [
+        "fleet",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:create",
+      "prd",
+      "Author a PRD inside a slice. This is where a promise turns into work.",
+      [
+        "typed",
+        "board",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:prd:fill",
+      "prd",
+      "Fill a PRD stub from its page: the job story, the dimensions, the scope offer, landed at prd-drafted. Never typed.",
+      [
+        "fleet",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:design",
+      "prd",
+      "Technical and UX design for a drafted PRD.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:plan",
+      "prd",
+      "Backend and frontend implementation plans for a designed PRD.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:implement",
+      "prd",
+      "Build a planned PRD through to a green PR. Autonomous by default.",
+      [
+        "typed",
+        "board",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:prd:verify",
+      "prd",
+      "The gate a PRD passes on its way out. A fresh session the implementer never touched audits the acceptance criteria.",
+      [
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:check",
+      "issue",
+      "The gate every filed issue passes through before the fleet may touch it. Dispatched on Triage, never typed.",
+      [
+        "fleet",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:verify",
+      "issue",
+      "The gate every bug or task fix passes on its way out. A fresh session, dispatched on Review.",
+      [
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:bug:create",
+      "issue",
+      "File a bug with the forensic detail a fixer needs.",
+      [
+        "typed"
+      ]
+    ],
+    [
+      "/fleet:bug:fix",
+      "issue",
+      "TDD bug fix through to a merged PR. Reproduce red, fix the cause, confirm green.",
+      [
+        "typed",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:task:create",
+      "issue",
+      "File a small scoped task that needs no PRD.",
+      [
+        "typed"
+      ]
+    ],
+    [
+      "/fleet:task:implement",
+      "issue",
+      "Build a small scoped task through to a merged PR.",
+      [
+        "typed",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:idea:create",
+      "issue",
+      "Park an early idea in Linear without committing to it.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:push",
+      "—",
+      "Commit and open a PR; `ship` arms auto-merge on green CI.",
+      [
+        "typed"
+      ]
+    ]
+  ],
+  "cmds": {
+    "next": [
+      [
+        "/fleet:route",
+        "Anything new — a request, an idea, a complaint. It works out whether it is a program, a slice, a PRD, a task or a bug, and files it."
+      ],
+      [
+        "/fleet:idea:create",
+        "Park something early in Linear, without committing to it."
+      ],
+      [
+        "/fleet:check",
+        "The gate every filed issue passes through before the fleet may touch it."
+      ]
+    ],
+    "board": [
+      [
+        "/fleet:route",
+        "Anything new — a request, an idea, a complaint. It works out whether it is a program, a slice, a PRD, a task or a bug, and files it."
+      ],
+      [
+        "/fleet:program:create",
+        "Add a program. Use it when a result someone gets has no home yet."
+      ]
+    ],
+    "program": [
+      [
+        "/fleet:program:decompose",
+        "Work backwards from the promise: what has to exist for this to be true? Produces the gaps and their order."
+      ],
+      [
+        "/fleet:program:deliver",
+        "One delivery cycle. Releases the work that is ready, chases what stalled, and asks you about anything blocking."
+      ],
+      [
+        "/fleet:program:ship",
+        "Close it. Checks the proof actually walked the whole thread rather than one lane of it."
+      ],
+      [
+        "/fleet:slice:create",
+        "Cut a new slice inside this program."
+      ]
+    ],
+    "slice": [
+      [
+        "/fleet:prd:create",
+        "Start a PRD in this slice. This is where a promise turns into work."
+      ],
+      [
+        "/fleet:slice:edit",
+        "Change what this cut waits on, which run proves it, or the sentence that says when it is done."
+      ],
+      [
+        "/fleet:slice:create",
+        "Cut a sibling slice next to this one."
+      ]
+    ],
+    "prd": [
+      [
+        "/fleet:prd:design",
+        "Technical and UX design for a drafted PRD."
+      ],
+      [
+        "/fleet:prd:plan",
+        "Backend and frontend implementation plans for a designed PRD."
+      ],
+      [
+        "/fleet:prd:implement",
+        "Build it through to a green PR. Autonomous by default."
+      ]
+    ],
+    "health": [
+      [
+        "/fleet:slice:edit",
+        "Change what a cut waits on, which run proves it, or the sentence that says when it is done."
+      ],
+      [
+        "/fleet:program:decompose",
+        "Cut the slices a program has none of."
+      ]
+    ]
+  },
+  "pipeLabel": "A PRD's path",
+  "pipe": [
+    [
+      "/fleet:prd:create",
+      "write it"
+    ],
+    [
+      "/fleet:prd:design",
+      "design it"
+    ],
+    [
+      "/fleet:prd:plan",
+      "plan it"
+    ],
+    [
+      "/fleet:prd:implement",
+      "build it"
+    ],
+    [
+      "/fleet:prd:verify",
+      "prove it"
+    ]
+  ]
+}
