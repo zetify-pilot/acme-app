@@ -24,13 +24,19 @@ class Task(TaskIn):
     done: bool = False
 
 
+class TaskPatch(BaseModel):
+    done: bool
+
+
 _tasks: dict[int, Task] = {}
 _next_id = 1
 
 
 @app.get("/tasks")
 def list_tasks() -> list[Task]:
-    return list(_tasks.values())
+    # Finished tasks sort last; Python's stable sort keeps each group in
+    # insertion order.
+    return sorted(_tasks.values(), key=lambda task: task.done)
 
 
 @app.post("/tasks", status_code=201)
@@ -40,6 +46,15 @@ def create_task(task: TaskIn) -> Task:
     _tasks[created.id] = created
     _next_id += 1
     return created
+
+
+@app.patch("/tasks/{task_id}")
+def update_task(task_id: int, patch: TaskPatch) -> Task:
+    task = _tasks.get(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    task.done = patch.done
+    return task
 
 
 @app.post("/tasks/{task_id}/done")
