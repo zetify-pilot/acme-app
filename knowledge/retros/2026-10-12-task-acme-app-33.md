@@ -56,3 +56,27 @@ owner: run:95e3ff99-4401-465b-b97f-bb4487ed8f63
   (`#2`, `#9`, `#7`, `#13`, `#32`, `#33`) and still unaddressed. Promote it.
 - Friction #3 (the `fleet_knowledge` package and `knowledge_registers.py` are absent, so the
   corpus' own readers cannot run) recurs from `#32` and `#13`.
+
+## Re-handoff (2026-10-12, rework after `checks-timed-out`)
+
+The issue returned to rework because the fleet's watcher could not read PR #40's checks for
+two hours (`checks-timed-out`; `implementing → rework` at 19:57). **No verifier ledger line
+was posted and no verify verdict is recorded for the PR** — the return was the checks read
+timing out, not a refutation of the change. This run re-derived the issue's three ledger
+lines against the branch and found all three already satisfied, so **the register diff is
+unchanged** from the first hand-off.
+
+Corrected denominator (the first PR body's *"the corpus names the too-long refusal in 3
+places"* undercounted). At this head the corpus names `CAP-0006` / the too-long refusal in
+**four** documents, of which only the two registers the issue names ever asserted it as
+*wanted work* — both are edited here:
+
+| Document | Role | Edited? |
+| --- | --- | --- |
+| `knowledge/features/tasks.md` | the tasks feature-map register | yes — row `(retired)`, legend, note |
+| `knowledge/programs.md` | the program register | yes — `Requires` drops `CAP-0006` |
+| `knowledge/programs/PG-01.md` | the shaping-time program record | no — the issue names two registers; corpus convention leaves the shaping record |
+| `knowledge/prds/0001-…/prd.md`, `design.md` | the PRD and its design record | no — both record the refusal as *deferred*, not as outstanding work |
+
+The commit carrying this note exists to **re-trigger CI on a fresh head** so the fleet's
+watcher receives new check events; no register content changed with it.
