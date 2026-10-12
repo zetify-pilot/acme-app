@@ -22,3 +22,4 @@ installed, `make test` runs the same suite.
 ```bash
 uvicorn app.main:app --reload
 ```
+Acceptance note R222: this line was added by the fleet on 2026-10-12.
