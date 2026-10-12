@@ -2,11 +2,12 @@
 type: prd
 prd: 0001
 title: A customer exports their own task list and opens it in a spreadsheet
-status: designed
+status: planned
 status_history:
   - { state: stub, at: 2026-10-11T09:21:01Z, by: prd }
   - { state: prd-drafted, at: 2026-10-11T23:58:24Z, by: fleet:prd:fill }
   - { state: designed, at: 2026-10-12T01:02:07Z, by: fleet:prd:blueprint }
+  - { state: planned, at: 2026-10-12T01:14:00Z, by: plan }
 slice: SL-002
 area: tasks
 priority: medium
@@ -19,12 +20,13 @@ source_ideas: []
 
 # PRD 0001 — A customer exports their own task list and opens it in a spreadsheet
 
-> **Status:** designed. The stub was filled by `/fleet:prd:fill 0001` on the fleet, in
+> **Status:** planned. The stub was filled by `/fleet:prd:fill 0001` on the fleet, in
 > three rounds of written questions; the brief the interview started from is kept below
 > under `## Brief`. The technical and UX design was written by `/fleet:prd:blueprint 0001`
 > on the fleet in two rounds of written questions, against
 > `1ea420ff3db601905fd5777dd2bd51e5598d8162`; see `design.md` and `ux-design.md` beside this
-> file. Ready for plan.
+> file. The implementation plan was written by `/fleet:prd:plan 0001` — `backend-plan.md`
+> beside this file (one lane, two tasks in two waves); ready for implementation.
 
 ## Brief
 
@@ -138,22 +140,22 @@ Every criterion is `[local]` — observable by driving the app the way a custome
 repository's own test lane (`tests/`, FastAPI's test client; see `## Open questions` on the
 dev-stack slot).
 
-- **AC-1** `[local]` — Asking for the export from the running product answers with a file the
-  browser saves, rather than a page of text.
-- **AC-2** `[local]` — The saved file opens in a spreadsheet with a row of column names at the
-  top and one row per task, holding the task's title and a column headed `done` with the value
-  `true` or `false`.
-- **AC-3** `[local]` — A title containing a comma or a double quote comes through exactly as it
-  was typed, still one row per task.
-- **AC-4** `[local]` — A title containing an accent or a symbol opens readable in a
-  spreadsheet, not as garbled characters.
-- **AC-5** `[local]` — Every task in the list appears exactly once, in the order the app shows
-  the list — open tasks first, finished ones last.
-- **AC-6** `[local]` — A person whose list is empty gets a file with the column names and no
-  rows, rather than an error.
-- **AC-7** `[local]` — A list of several thousand tasks still comes out as one file; the export
-  never refuses or errors over the list's size.
-- **AC-8** `[local]` — The saved file is named with the day it was made, e.g.
+- **AC-1** `[local]` **[REQ-0001]** — Asking for the export from the running product answers
+  with a file the browser saves, rather than a page of text.
+- **AC-2** `[local]` **[REQ-0002]** — The saved file opens in a spreadsheet with a row of column
+  names at the top and one row per task, holding the task's title and a column headed `done`
+  with the value `true` or `false`.
+- **AC-3** `[local]` **[REQ-0003]** — A title containing a comma or a double quote comes through
+  exactly as it was typed, still one row per task.
+- **AC-4** `[local]` **[REQ-0004]** — A title containing an accent or a symbol opens readable in
+  a spreadsheet, not as garbled characters.
+- **AC-5** `[local]` **[REQ-0005]** — Every task in the list appears exactly once, in the order
+  the app shows the list — open tasks first, finished ones last.
+- **AC-6** `[local]` **[REQ-0006]** — A person whose list is empty gets a file with the column
+  names and no rows, rather than an error.
+- **AC-7** `[local]` **[REQ-0007]** — A list of several thousand tasks still comes out as one
+  file; the export never refuses or errors over the list's size.
+- **AC-8** `[local]` **[REQ-0008]** — The saved file is named with the day it was made, e.g.
   `tasks-2026-10-11.csv`.
 
 ## Scope
@@ -253,5 +255,7 @@ own degrade, and it means no docs gate runs at verify. Reported in `## Open ques
 
 ## Next Steps
 
-This PRD is ready for design. Run `/fleet:prd:design 0001` to produce the technical and UX
-design. On the fleet, `prd:blueprint` designs it once its prerequisites ship.
+This PRD is planned and ready for implementation. Run
+`/fleet:prd:implement knowledge/prds/0001-a-customer-exports-their-own-task-list` — one lane,
+two tasks in two waves, into one branch. On the fleet, the plan mission hands it to the
+implement queue once this lands.
