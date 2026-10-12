@@ -68,3 +68,23 @@ owner: run:b33e1dce-33e7-44df-b697-982b86884078
   `#33`/PR #40 hit the same wall the same day. **Recurring across two runs** — the dispatch
   missions ask a seat to confirm `check-runs total_count` is non-zero, which no seat here can
   actually do.
+
+## Rework cycle 2 (2026-10-12, third dispatch — checks-timed-out again)
+- The fleet timed out reading PR #39 a **second** time (its note at 22:16Z) and moved the issue
+  back to Rework Queue with `checks-timed-out`; the dispatch carried the generic *"verification
+  REFUTED this fix"* prompt, but the issue history and the fleet's own notes say otherwise:
+  `via: checks-timed-out`, **no verify verdict was ever recorded** (`get_verdict` →
+  `no-verdict`), and no refutation comment exists on the issue or the PR. So there are **no
+  OPEN cause-ledger lines to close** — the fix was never reviewed, only unreadable.
+- Systemic, not PR-specific: issues `#28` and `#33` took the same `implementing → rework`
+  transition via `checks-timed-out` at the same instant (19:56:55Z), and the fleet's own fact
+  store reports `checks: no CI run is recorded` for every one of these PRs (#30, #39, #40) and
+  even for the already-merged `#7`/`#9`. The seat token carries **no** `checks:read`,
+  `actions:read` or `branch-protection:read` (all HTTP 403), so neither the seat nor the
+  checks-watch can observe CI on this repo.
+- The change still stands unchanged: `knowledge/slices.md` SL-001's `Disposition` reads
+  `superseded by SL-002, SL-003`, SL-002/SL-003 byte-identical to `main`. Cause ledger 3/3.
+- Remediation this cycle: link PR #39 to the issue in the fleet (the issue's `links.prs` was
+  empty — #33/#28 carry their PR links, #32 carried none), and move the head with a fresh
+  commit so a new `pull_request` `synchronize` re-dispatches `ci` on a head the watch has not
+  already abandoned.
