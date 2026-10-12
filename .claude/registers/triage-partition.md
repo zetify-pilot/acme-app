@@ -196,12 +196,13 @@ coexistence that can no longer happen, so a label later re-added as a *diagnosti
 issue keeping `verify-failed` for visibility is the live candidate) would silently empty the
 queue that still excluded it.
 
-**Only view 1 has a zero target — and that target is about its `DECISION_STATES` half.** It
-gates the fleet, and  drains it
+**Only view 1 gates the fleet — and that is about its `DECISION_STATES` half.** Its target is
+zero, and  drains it
 every cycle. `Needs answer` rides in the same view because the same person owes the reply, but
 it blocks nothing (see [the distinction above](#️-needs-answer-is-not-blocked--decision-and-the-difference-is-who-is-stuck)) —
 so an unanswered question is a *slow* item, never a stalled fleet. View 2 needs a human's hands
-but blocks no agent — drain it when convenient.
+and blocks no agent, but the same drain takes it to zero too: every item handled, or its
+runnable instructions in the human's hands.
 
 > **`Triage Queue` and `Intake Queue` sit in the fleet-owned pool (view 5), not the human
 > catch-all.** The daemon dispatches [`/fleet:check`](#)
@@ -381,8 +382,13 @@ Every mutation an agent or a human makes is a row here. Never invent one.
 | **Hand it back — to a verifier** (you drove the fix yourself and its PR is green: `Human WIP` → `Verify Queue`) | you | **`Verify Queue`** + **priority** — ⚠️ **the priority rides with the move.** A priority-less arrival here is refused by the dispatch gate *where it sits*, and the remedy at this position is to set the priority **in place** — never a move back to `Triage Queue`, which re-enters the implement half against a fix that already exists |
 | Claim — triage | daemon | `Triage Queue` → `Triaging` |
 | Claim — implement | daemon | `Implement Queue` \| `Rework Queue` → `Implementing` |
-| Implement handoff (green PR opened) | daemon | `Implementing` → **`Verify Queue`** |
+| Implement handoff (PR open, checks dispatched on the head the run recorded — the run ends `checks-pending` and releases its seat) | daemon (the checks watcher, once every required check is green on that head; a human-driven `--manual` run still writes the move itself) | `Implementing` → **`Verify Queue`** |
+| Checks red, PR conflicting, or head moved off the recorded commit (same watcher) | daemon | `Implementing` → **`Rework Queue`**, the note naming which |
+| PR closed while its checks were awaited (same watcher) | daemon | `Implementing` → **`Blocked · action`** |
 | Claim — verify | daemon | `Verify Queue` → `Verifying` |
+| Verify run ends `verify-awaits-checks` (partial ledger posted, waiting only for CI on the head it judged; the seat is released) → required checks green on that head (the checks watcher) | daemon | `Verifying` → **`Verify Queue`**, dispatched **ahead of fresh verifies** (started work goes first) so a new verify run finishes the verdict |
+| Same wait → checks red, PR conflicting, or head moved off the judged commit | daemon | `Verifying` → **`Rework Queue`**, the note naming which |
+| Same wait → PR closed | daemon | `Verifying` → **`Blocked · action`** |
 | Verify passes, ledger all-closed | daemon | `Verifying` → `Done` |
 | Verify refutes | daemon | `Verifying` → **`Rework Queue`** |
 | Graceful stop / stale-heartbeat reclaim | daemon | `Triaging` → `Triage Queue`; `Implementing` → `Implement Queue`; `Verifying` → `Verify Queue` |

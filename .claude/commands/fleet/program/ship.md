@@ -168,7 +168,7 @@ a slice's: that collapses the program's completion condition into that slice's a
 validator rejects it (). Naming the e2e proof is
 `/fleet:program:decompose`'s job (Phase 7), because choosing what would demonstrate the
 outcome is a design decision, not a closing formality — and for a program that was already
-decomposed without one,  is the surgical repair (it names
+decomposed without one, [`/fleet:program:prove`](prove.md) is the surgical repair (it names
 or repoints that one cell and nothing else, rather than re-deriving the decomposition).
 
 **Gate 3 — every proof is shipped.** A proof PRD is `shipped` — not `verified`, not
@@ -211,7 +211,7 @@ derived reading is already correct. It needs **work filed** instead: go to Step 
 **Gate 4 failing does need an edit, and it is the one edit this command makes on a
 failure.** A `Verified by` that names an inadequate proof is a live defect: the derivation is
 reading it as proof right now. Either repoint that cell at the proof that would actually
-demonstrate the program —  owns that repair, and it applies
+demonstrate the program — [`/fleet:program:prove`](prove.md) owns that repair, and it applies
 the same four refusals to the replacement so you cannot swap one inadequate proof for another —
 or, when the honest answer is that no such proof has been designed, say so plainly in the
 report and hand it to `prove` (which will leave the cell empty and name the PRD that needs
@@ -346,7 +346,7 @@ are specific:
   commit, which is the intended answer.
 - **Never author `Verified by` here to make a program closeable.** If it is missing, the
   program was decomposed without naming its proof — send it to
-  , or back to `/fleet:program:decompose` if the
+  [`/fleet:program:prove`](prove.md), or back to `/fleet:program:decompose` if the
   decomposition itself is stale. Writing it *at closing time* means choosing the proof to fit
   what already shipped, which is the reasoning backwards — and it is the hazard `prove`
   exists to defend against structurally, by making you write the demonstration sentence

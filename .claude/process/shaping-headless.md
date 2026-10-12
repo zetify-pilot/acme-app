@@ -23,6 +23,15 @@ looking for more of it.** Then:
 - **No prior questions in the payload** → round one. Read the repository, then ask.
 - **Prior questions AND their answers** → you were resumed. Consume them (§4) and continue
   where the round plan says you left off.
+- **A `## Decided already` block in your system prompt** → a person already answered earlier
+  rounds on this entity and the session that asked them is gone, so you are a cold start. The
+  block lists, oldest first, every answered question on the entity — the question text and the
+  answer verbatim, from this command and from earlier ones (a design inherits the fill's
+  answers). **Those are decided: never ask one again, never re-ask it reworded, and do not count
+  those rounds against your ceiling.** Plan from them as if you had asked them. Re-open one only
+  when the person's own answer says so ("revisit", "ask me again once ...", a send-back
+  instruction naming it); the fact that you would have chosen differently, or that the draft
+  has since moved, does not. Ask only what the block leaves open.
 - **Prior questions with no answers** → re-dispatched before the person got to it. **Do
   nothing at all and end the turn**: write the sentinel as `needs-decision` and stop.
   Re-asking is how a person receives the same round twice and learns to ignore both.

@@ -388,7 +388,14 @@ ONE owning task per wave; if two tasks both need it, serialize them or fold them
 (Concurrent edits to one codegen source in the 0075 run appended ~130 duplicate lines and
 corrupted the file.)
 
-### 3a. Compute the migration number at implement-time, never trust the plan's
+### 3a. Migrations are timestamp-named — mint the id at implement-time, never count
+
+**Where a repo's migrations carry a timestamp id there is no "next number"** — run the repo's
+migration-authoring tool (its README names it) and write your SQL into the file it creates. Never
+type a counted number by hand and never renumber on a rebase: timestamp ids cannot clash. The renumbering guidance below applies only to repos that
+still count their migrations.
+
+#### Counted-series repos: compute the migration number at implement-time, never trust the plan's
 
 The plan names migrations with a placeholder (`00NNN_<slug>`, per
 [`plan.md`](#)). Before dispatching the

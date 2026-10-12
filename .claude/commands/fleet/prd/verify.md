@@ -53,6 +53,7 @@ Post-implementation review: confirm every PRD acceptance criterion was implement
   "steps": [
     {"id": "status-gate",      "name": "Status gate — implementing / verified / shipped", "kind": "decision", "actor": "coordinator", "consumes": ["prd"], "body": "step-0-status-gate"},
     {"id": "ship-retry",       "name": "Ship-only retry (bounded, status: verified)", "kind": "io", "actor": "coordinator", "produces": ["status", "linear-issue"], "body": "status-verified-ship-only-retry-bounded"},
+    {"id": "awaits-checks",    "name": "CI still running on the audited head — end verify-awaits-checks", "kind": "decision", "actor": "coordinator", "body": "step-0-6-ci-still-running"},
     {"id": "substrate-ready",  "name": "Substrate readiness — down is a blocker, never a verdict", "kind": "gate", "actor": "coordinator", "gate": "hard", "produces": ["linear-issue"], "body": "step-0-7-substrate-readiness"},
     {"id": "reentry-delta",    "name": "Re-entry after a FAIL — re-prove the open lines, smoke the rest", "kind": "decision", "actor": "coordinator", "consumes": ["prd", "acceptance-criteria"], "body": "step-0-8-re-entry-after-a-fail"},
     {"id": "carve-criteria",   "name": "Carve up the work",              "kind": "author", "actor": "coordinator", "consumes": ["prd", "design", "acceptance-criteria"], "body": "carve-up-the-work"},
@@ -63,6 +64,7 @@ Post-implementation review: confirm every PRD acceptance criterion was implement
     {"id": "requirement-cover","name": "Claimed-requirement coverage",   "kind": "decision", "actor": "coordinator", "consumes": ["requirement-register", "acceptance-criteria"], "body": "claimed-requirement-coverage"},
     {"id": "verdict",          "name": "Verdict (incl. design-fidelity FAIL)", "kind": "gate", "actor": "coordinator", "gate": "hard", "critique": "design-fidelity-bar", "body": "verdict"},
     {"id": "ship-gate",        "name": "Ship-gate — may this run bless the merge?", "kind": "gate", "actor": "coordinator", "gate": "hard", "body": "ship-gate-may-this-run-bless-the-merge"},
+    {"id": "reconcile-base",   "name": "Reconcile the base immediately before the stamp", "kind": "io", "actor": "coordinator", "body": "step-4-9-reconcile-the-base"},
     {"id": "flip-status",      "name": "Flip status (success only)",     "kind": "io", "actor": "coordinator", "produces": ["verified-status", "linear-issue"], "body": "flip-status-on-success-only"},
     {"id": "ship",             "name": "Ship (all-PASS or pass-with-follow-up)", "kind": "io", "actor": "coordinator", "produces": ["status"], "body": "ship-all-pass-or-pass-with-follow-up"},
     {"id": "audit-followups",  "name": "File post-ship audit follow-ups", "kind": "io", "actor": "coordinator", "produces": ["linear-issue"], "body": "file-post-ship-audit-follow-up"}
@@ -206,17 +208,33 @@ never a verified carrier.
   That script is the whole of the verifier's licence to touch the branch: **no rebase, no
   hand resolution, no fix-up commit** — those remain authoring, and the party that authors
   never certifies.
-- **No open PR, and the PRD's work already merged — in this repository without the
-  `shipped` flip, or in ANOTHER repository** → this is **not** the proof-only shape, and a
-  carrier PR opened here cannot carry the stamp: the daemon mints no dispatch token for a PRD
-  whose linked PRs merged or live in another lane, and the dispatch-token check accepts the
-  0-bound sentinel only for a PRD whose own design declares it ships no product code. The
-  terminal is Step 4.5's, fixed: park **`Blocked · action`** with `needs-action`, naming the
-  exact flip — `knowledge/prds/<NNNN>-<slug>/prd.md`: `status: <what main reads> → shipped`.
-  **Never close the issue `Done` from here** (: PRD 0692's issue closed while `main`
-  read `planned`, and its dependants were refused for three days). The fleet re-reads the
-  frontmatter after every PRD success and parks the issue itself when it does not read
-  `shipped`.
+- **No open PR, and the PRD's `status:` line lives in ANOTHER repository (its `lane:`/register
+  names it, or a `PRD REGISTER` block does)** → the ship is a knowledge-only CARRIER PR in that
+  register repository, and the daemon-minted token is bound to ITS number — the register's
+  `PRD Verified` gate recomputes the HMAC against the pull request its own event fired in, so no
+  PR in this lane can carry the flip. When this dispatch carried a token the carrier is already
+  open there: check out its branch (clone the register repo if needed), change only
+  `knowledge/prds/<NNNN>-<slug>/prd.md` (`status:` to `verified` then `shipped`, with the
+  `status_history` rows), embed the token as a `Dispatch-Token:` commit trailer, drive its CI
+  green and merge it — never add product code to it. **When it carried NO token the carrier
+  cannot yet be named** (it did not exist at mint time, or the tracker has not linked it yet):
+  do **NOT** park a person. Binding the dispatch token is the daemon's own job at dispatch time,
+  and a `Blocked · action` park is off the dispatch tick, so the PRD never re-dispatches. Open
+  the carrier if it does not exist (issue key in its branch, title and body so the tracker links
+  it; an empty or docs-only commit is enough); if it already exists, leave it — do not open a
+  second one. Then write done-sentinel status **`partial`** naming the carrier: the service
+  returns the issue to `Verify Queue`, and the tick's next attempt, with the carrier now linked,
+  mints the token and lands the flip.
+- **No open PR, and the PRD's work already merged in THIS repository without the `shipped`
+  flip** → this is **not** the proof-only shape, and a carrier PR opened here cannot carry the
+  stamp: the daemon mints no dispatch token for a PRD whose linked PRs merged, and the
+  dispatch-token check accepts the 0-bound sentinel only for a PRD whose own design declares it
+  ships no product code. The terminal is Step 4.5's, fixed: park **`Blocked · action`** with
+  `needs-action`, naming the exact flip — `knowledge/prds/<NNNN>-<slug>/prd.md`: `status: <what
+  main reads> → shipped`. **Never close the issue `Done` from here** (: PRD 0692's
+  issue closed while `main` read `planned`, and its dependants were refused for three days). The
+  fleet re-reads the frontmatter after every PRD success and parks the issue itself when it does
+  not read `shipped`.
 - **No open PR** otherwise → this is the **proof-only / walk-only** shape (no product code by
   design — e.g. a composed-proof PRD whose entire deliverable is the walk). Open the
   binding surface **now**, as this session's first act:
@@ -360,6 +378,22 @@ before no-op'ing, resolve the PRD's tracker issue and check its state history:
      because the issue's history could not be read.
 
 ---
+
+## Step 0.6: CI still running on the head you are auditing — end `verify-awaits-checks`
+
+A seat is for judging, not for waiting on CI (two Urgent verify runs held one 45–55 minutes each on
+`gh run watch`, ). In a fleet-dispatched run whose outcome map teaches
+`verify-awaits-checks`, when the **only** thing between you and a verdict is the required checks
+finishing on the PR head you are auditing — and **before** you author any stamp commit or record a
+verdict — post your partial ledger (a `comment` carrying `<!-- fleet:verify-partial-ledger -->`, the
+head SHA, and each acceptance criterion as `closed` / `open` / `needs-green-ci`), confirm the PR head
+equals the branch ref and is not `CONFLICTING`, then write the done-sentinel with
+`status: "verify-awaits-checks"`, `pr`, and **`verifiedSha` the 40-hex head you audited**, and stop.
+The service returns the issue to the verify queue ahead of fresh verifies when the checks are green
+(a new verify run finishes the audit from your partial ledger), or to `Rework Queue` with the reason
+on red, a conflict or a moved head. Never end it over red checks (that is a FAIL), never after
+authoring the stamp, and never to skip the audit: it certifies nothing, and the verdict and the merge
+stay a verify run's.
 
 ## Step 0.7: Substrate readiness — down is a blocker, never a verdict
 
@@ -940,7 +974,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -1056,6 +1092,46 @@ that authoring convention was weighed and refused. The ship is the merge that mo
 because its frontmatter did not move (disclaimer optional on the refusal path). Design
 prose keeps the sequencing; this gate keeps the verdict. Decision:
 [``](#).
+
+---
+
+## Step 4.9: Reconcile the base immediately before the stamp (the verification window's last act)
+
+**Step 0.5 reconciles only at the START of the session; the audit runs for minutes to hours and
+`main` moves the whole time.** A branch that was mergeable when this session began can be
+`CONFLICTING` again by the time the verdict is in — and then the `verified`/`shipped` stamp push
+cannot land: GitHub computes no merge ref, the plan gate never re-reads, and a mechanically
+perfect PRD never merges. Observed by a delivery watch on three consecutive cycles
+(): PR #16154 (PRD 0843) took three all-14-AC PASS verdicts plus a
+twelfth conflict-as-work hand-back and still had not merged, and PR #16653 (PRD 0788) reported
+*"every acceptance criterion PASSes; the blocker is mechanical"* ().
+
+So on an all-PASS verdict (or a pass-with-follow-up), the **final act before writing the stamp** —
+after Step 4.5's ship-gate, before Step 5's flip — is the same non-authoring reconcile Step 0.5
+runs, run at the moment it actually matters:
+
+```bash
+gh pr view <pr> --json mergeable,mergeStateStatus   # re-read — main moved since Step 0.5
+python3 knowledge/scripts/regen_reconcile.py --base origin/main
+```
+
+- **Mergeable** → proceed to Step 5 and stamp.
+- **`CONFLICTING` / `DIRTY`, reconcile exit 0** → `python3 knowledge/scripts/gh_automerge_disarm.py <pr>`,
+  `git push origin HEAD` (a fast-forward — **never** `--force`), then stamp at the new head and ship
+  immediately. The branch's own diff is proven byte-identical (minus whatever `main` also did), so
+  the verdict carries unchanged — the gate matches by the pull request's own diff, and a reconcile
+  push needs no new verdict. Quote the script's output in the report's `Reconciled:` line.
+- **Exit 1** (a real conflict, or the own-diff would change) → the conflict-as-work route: post the
+  brief stamped `<!-- linear-agent:conflict-rework -->` with the script's output quoted, move the
+  issue to `Rework Queue`, write the done-sentinel `verify-failed`, stop. A conflict-only return is
+  the mechanical rebase lane, not a refuted criterion (Step 0.5's rules apply verbatim).
+- **Exit 2** (could not run — a dirty tree, an unregistered driver) → register the repository's
+  merge drivers and retry **once**; otherwise treat as exit 1 with the output quoted.
+
+**Never rebase here — that is authoring, and the verifier never authors.** `regen_reconcile.py`
+merges `origin/main` and proves the certified diff unchanged; a rebase rewrites every certified
+commit. This is why the ship that follows uses the same reconcile for its own base-conflict route
+rather than the rebase default `push` mode uses.
 
 ---
 

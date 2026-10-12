@@ -119,7 +119,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -148,7 +150,7 @@ The reproduce-first TDD discipline (red→root-cause→green) is fully intact in
 4. **Show the green** — after fixing, run the test again and display the passing output as proof.
 5. **Scoped changes** — stay focused on the bug, but don't artificially limit yourself. If fixing the root cause requires changes across multiple files or layers (backend, frontend, prompts), that's expected — not scope creep. What you should NOT do is unrelated cleanup, style changes, or feature additions.
 6. **Autonomous mode (default):** log the chosen root-cause hypothesis in the Autonomous Decisions Log (and `comment` on the issue when a tracker key is in play) and proceed (see gate mappings above). **`--manual` mode:** use `AskUserQuestion` to disambiguate between multiple possible root causes, presented as selectable options.
-7. **Out-of-scope findings (Rule G):** if you discover a distinct bug while investigating → `/fleet:bug:create` (agent path: `file_issue` kind task with first body line `Defect: <one line>`); if you spot an important follow-up that isn't a bug → `/fleet:task:create` (Fleet `file_issue` kind task). Log the filing in the Autonomous Decisions Log (or in your output summary under `--manual`). Never fix it inline. **If the Fleet tools refuse the filing, end this run `failed`** — name the follow-up and the refusal in the Decisions Log; do not carry on as if it were filed. See Rule G in [`autonomous-drive.md`](../../../process/autonomous-drive.md).
+7. **Out-of-scope findings (Rule G):** if you discover a distinct bug while investigating → `/fleet:bug:create` (Fleet `file_issue` kind bug, `Found during: <KEY>` in the body); if you spot an important follow-up that isn't a bug → `/fleet:task:create` (Fleet `file_issue` kind task). Log the filing in the Autonomous Decisions Log (or in your output summary under `--manual`). Never fix it inline. **If the Fleet tools refuse the filing, end this run `failed`** — name the follow-up and the refusal in the Decisions Log; do not carry on as if it were filed. See Rule G in [`autonomous-drive.md`](../../../process/autonomous-drive.md).
 
 ### Red flags — STOP and restart Phase 1
 
@@ -310,7 +312,7 @@ If the root cause + fix approach involve a **reasonably-complex, load-bearing de
 changes an interface, an invariant, a convention, or a future direction — record it as an **ADR-style
 note** *before* writing the fix: **context · options · decision · rationale**. Put it where the work
 lives: a comment on the tracker bug issue, carried into the run's bug-retro "Decisions" section. By the
-time you reach the fix, the decision is already captured. **If it (or the Autonomous Decisions Log) is written into the issue description, it goes under `## Implementation notes (<date>)` — never `## Decision (<date>)`, which is reserved for a human's answer ([`decision-write-back.md`](../../../process/decision-write-back.md), ).** **Skip this for routine fixes** (the common
+time you reach the fix, the decision is already captured. **Record it as an `implementation-notes` comment** (`comment` kind=`implementation-notes`) — never a description rewrite (no tool rewrites one;  / G4), and never under `## Decision (<date>)`, which is reserved for a human's answer ([`decision-write-back.md`](../../../process/decision-write-back.md), ). **Skip this for routine fixes** (the common
 case) — not every fix earns an ADR, only the ones someone will later ask "why did we fix it this way?"
 about.
 
@@ -505,8 +507,8 @@ one of exactly three dispositions — no fourth, and no blank:
 | | |
 |---|---|
 | **FIXED** | name the file:line that satisfies it **and** the test that would fail without it |
-| **DEFERRED** | say why, and **file the follow-up now** via `/fleet:bug:create` or `/fleet:task:create` (Fleet `file_issue` — agent defects as task with `Defect:` first line; lands in `triage`) — a deferral with no issue is an unfixed cause with a closed ticket. A refused filing ends this run `failed`. |
-| **REFUTED** | the issue's claim is wrong; say what you found instead, and **correct the issue's description** so the next reader is not sent after a defect that does not exist |
+| **DEFERRED** | say why, and **file the follow-up now** via `/fleet:bug:create` or `/fleet:task:create` (Fleet `file_issue` — a defect as kind bug; lands in `triage`) — a deferral with no issue is an unfixed cause with a closed ticket. A refused filing ends this run `failed`. |
+| **REFUTED** | the issue's claim is wrong; say what you found instead, and **record the refutation as an `implementation-notes` comment** (`comment` kind=`implementation-notes` — name the claim and what is true instead) so the next reader is not sent after a defect that does not exist. Do **not** edit the issue description: no tool rewrites one ( / G4) |
 
 ```
 CAUSE LEDGER — 
@@ -609,10 +611,18 @@ The fix is code-bearing, so it ships via a **branch + PR** (`slot:git-workflow`)
    arm stands through the verify window, and it is dropped before either check-state
    change that follows: the verify session disarms at its §6 step 3 before re-running
    the gate (), and ship mode disarms before any push ().
-2. **Wait for green CI.** A red PR is not a handoff; fix it here, where the context lives.
-   Verification refuses a red PR and parks it straight back at you. The one red you expect
-   to keep at handoff is the fix gate itself (red by design until the verdict re-read —
-   step 2.5).
+2. **Do not hold the seat for CI — in a fleet-dispatched run, end `checks-pending`.** A red
+   check you can already see is still yours to fix here, where the context lives. But once the PR
+   is open and your last push is on it, do **not** `gh pr checks --watch`: confirm the PR head
+   equals the remote ref, that it is not `DIRTY`, and that the checks are dispatched on that head
+   ([`autonomous-drive.md`](../../../process/autonomous-drive.md) → *The terminal:
+   `checks-pending`*), then skip steps 2.5–3 and take step 5 with `status: "checks-pending"`
+   and the head in `verifiedSha`. The service watches the required checks and moves the issue to
+   `Verify Queue` itself on green — or returns it to `Rework Queue` with the red checks named.
+   **A person running this with `--manual`, or a dispatch whose mission does not teach
+   `checks-pending`,** waits for green CI as before: a red PR is not a handoff, and
+   verification refuses one and parks it straight back at you. The one red you expect to keep at
+   handoff is the fix gate itself (red by design until the verdict re-read — step 2.5).
 2.5. **🛑 Hand the PR off READY — never a draft.** Do NOT convert the PR to draft as a
    verify hold: the  draft hold is retired () because the required
    fix-gate check superseded it — that check, not a draft, is the verify verdict's
@@ -622,15 +632,19 @@ The fix is code-bearing, so it ships via a **branch + PR** (`slot:git-workflow`)
    non-pass hold is the daemon's `🚦 Verification did not pass — PR stopped` comment
    (hidden marker `<!-- linear-agent:verify-stop -->`), which lifts automatically at the
    next verify dispatch — the fleet's live verify hold never involves a draft.
-3. **Hand off with `move_issue(to: "review")`** (Verify Queue). That position move *is* the
-   handoff: the daemon dispatches `/fleet:verify <KEY>`, which certifies the ledger and merges
+3. **Hand off with `move_issue(to: "review")`** (Verify Queue) — *not in a `checks-pending`
+   run (step 2), where the service writes this move when the checks are green.* That position
+   move *is* the handoff: the daemon dispatches `/fleet:verify <KEY>`, which certifies the ledger and merges
    on an all-closed one. The `review` / Verify Queue position alone routes the verifier — do
    not invent label writes. **If the move is refused, end this run `failed`** — name the
    refusal; do not claim handoff.
-4. **Decisions log:** when you need a durable note on the issue (chosen hypothesis, deferred
-   follow-up key), call `comment` with the body — never a side channel.
-5. **Write the done-sentinel claiming success.** Your run succeeded when the PR is green
-   and the issue is in review — the merge is a later session's outcome, not yours. Without
+4. **Decisions log / REFUTED claims:** when you need a durable note on the issue (chosen
+   hypothesis, deferred follow-up key, a REFUTED claim's correction), call `comment` with
+   `kind=implementation-notes` — never a description rewrite (no tool rewrites one).
+5. **Write the done-sentinel claiming success** — `checks-pending` (step 2) in a fleet-dispatched
+   run, `handed-off` after a human-driven wait for green. Your run succeeded when the PR is open
+   with its checks dispatched (or green and the issue in review) — the merge is a later
+   session's outcome, not yours. Without
    the sentinel the daemon looks for a merged PR that will not exist yet and parks the fix
    behind a human.
 

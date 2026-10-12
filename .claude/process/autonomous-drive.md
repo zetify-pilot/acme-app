@@ -57,9 +57,16 @@ human gets by running the command without `--manual`.
   named the way `slot:git-workflow` names it for this kind of work — and
   `<key>` in that name is the issue's *own* identifier as `slot:tracker-identity`
   describes it, never a hardcoded team prefix. **An execute command's terminal is the HANDOFF, not the merge** — it
-  opens the PR with [`/fleet:push`](#), drives CI
-  green, moves the issue to **`Verify Queue`**, **writes the done-sentinel with `status:
-  "handed-off"`**, and stops. **The state move is not the whole terminal: a run that ends
+  opens the PR with [`/fleet:push`](#), gets its
+  checks **dispatched** on the head it pushed, and — in a fleet-dispatched run, where the mission
+  teaches the word — **writes the done-sentinel with `status: "checks-pending"`** (its `pr`, and
+  that head in `verifiedSha`) and stops: the **service** watches the required checks on that
+  head and moves the issue to **`Verify Queue`** itself when they are green, or back to
+  **`Rework Queue`** with the red checks, the conflict, or the moved head named
+  ([*The terminal: `checks-pending`*](#the-terminal-checks-pending) below). A human-driven
+  `--manual` run, and a dispatch whose mission does not teach `checks-pending`, still drives CI
+  green itself, moves the issue to **`Verify Queue`**, **writes `status: "handed-off"`** and
+  stops. **The state move is not the whole terminal: a run that ends
   without the sentinel is a run the daemon reads as stopped short and relaunches — measured
   as sixteen `prd:implement` give-ups with every turn completed cleanly (), and the
   command bodies that omitted it were the tell.** `/fleet:push ship` is the
@@ -80,7 +87,11 @@ human gets by running the command without `--manual`.
   code to `main` is never acceptable. **In an execute run, Rule D withholds the HANDOFF**
   — a run that knows its own work is unsound (≥3 failed fix rounds, an unclosed gap)
   leaves the issue in **`Implementing`** rather than sending a verifier to certify
-  something it already knows will not certify.
+  something it already knows will not certify. **A `checks-pending` ending withholds it the
+  same way**: a run that can already see a red check, or knows its work unsound, fixes it or
+  parks — it never ends `checks-pending` hoping the service finds the failure for it. The
+  service's hand-off is the *same* hand-off, taken on a CI result instead of on the run's
+  waiting; it is not a verdict on the work and it never merges anything.
 - **E. Bounded fix loop.** The remediation loop is capped at **3 rounds**. If a
   round closes zero gaps, stop early and fall through to Rule D's withhold path.
 - **F. Atomic ship — see below.** The PRD `status: shipped` transition MUST ride
@@ -410,7 +421,7 @@ its own work — not in the work PR, not in a companion one:
   (`withdrawn:`, `superseded by`), the program proof-waiver baseline
   (``) and a slice's reasoned `proof_waiver` row field
   (`knowledge/slices/rows/SL-NNN.json`; ) are a
-  human's decisions, written through `/fleet:slice:edit` and `` —
+  human's decisions, written through `/fleet:slice:edit` and `/fleet:program:prove` —
   a run that withdraws the container its issue sits in, waives the proof its work
   owes, or turns a `deferred` waiver `excused`, has authorised its own stop.
 - **a PRD minted as the warrant for the issue being executed** — a run released to
@@ -449,6 +460,64 @@ on that same existing PRD.
 
 ---
 
+## The terminal: `checks-pending`
+
+**Why a coding run does not wait for CI.** Measured over 24 h, implement and rework runs spent
+about **168 of 635 seat-hours (~26%)** in the `checks` run-phase: the PR open, CI dispatched, and
+a seat blocked on `gh pr checks --watch` for a result nobody on the seat can speed up. The wait
+belongs to the service, as the verifier's merge-queue wait already does (`merge-pending`).
+
+**What the run does, in order**, once the PR is open and its last push is on it:
+
+1. **Confirm the PR knows the push** — `gh api repos/{owner}/{repo}/pulls/<pr> --jq .head.sha`
+   equals `git ls-remote origin <branch> | cut -f1` (a dropped `synchronize` leaves the PR on an
+   older commit and every check on it describes code that is not yours).
+2. **Confirm it can get CI** — `gh pr view <pr> --json mergeable,mergeStateStatus` is not
+   `CONFLICTING` / `DIRTY` (a conflicting PR never gets `pull_request` CI).
+3. **Confirm the checks are dispatched on that head** — `gh api
+   repos/{owner}/{repo}/commits/<head-sha>/check-runs --jq .total_count` is non-zero.
+4. **Write the done-sentinel** with `status: "checks-pending"`, `pr` the PR URL and
+   **`verifiedSha` the 40-hex head you confirmed**, and stop. Do **not** move the issue; the
+   service holds it in `Implementing` until the checks answer.
+
+**What the service does with it** ([`mergewait.decide_checks`](#)),
+reading only the checks GitHub says are *required* for that PR: all green on that same head
+→ the issue moves to `Verify Queue` (the hand-off this run used to write); a red check, a
+conflict, or a PR head that is not the recorded SHA → `Rework Queue` with a note saying which;
+the PR closed → `Blocked · action`; checks silent for three hours → `Rework Queue`. A rework run
+that arrives reads that note as its work order and ends `checks-pending` again; the per-issue
+run budget bounds the loop.
+
+**Nothing about certification moved.** The service's move is the hand-off, not a verdict: the
+verify session is still separate, still fresh, and nothing merges without its verdict (Rule D).
+`/fleet:push` used **interactively by a person** may still watch its own checks.
+
+## The terminal: `verify-awaits-checks`
+
+**Why a verify run does not wait for CI either.** Two Urgent verify runs () each held a
+seat 45–55 minutes on `gh run watch` for a CI re-run on the head they were judging. It is the
+[`checks-pending`](#the-terminal-checks-pending) problem on the other side of the handoff, solved
+with the same machinery: the run ends, the seat is free, and a `verify-checks` wait on the same
+`merge_wait` row watches the same required checks.
+
+**What the verifier does**, only when the required checks finishing on the head it is judging is the
+last thing between it and the verdict: judge everything that needs no green CI, post the **partial
+ledger** as a comment carrying `<!-- fleet:verify-partial-ledger -->` and the head SHA, confirm the
+PR head equals the branch ref and is not conflicting, then write the done-sentinel
+`status: "verify-awaits-checks"` with `pr` and **`verifiedSha` the head it judged**, and stop. It
+does not record a verdict, arm, merge or move the issue.
+
+**What the service does** ([`mergewait.decide_checks`](#)):
+all required checks green on that same head → the issue returns to **`Verify Queue`** with a comment
+pointing at the partial ledger, and dispatches **ahead of every fresh verify, urgent ones included**
+(started work goes first — `routing.priority_key`'s started-work key); a red check, a conflict, or a
+head that is not the recorded SHA → `Rework Queue` with the reason; the PR closed → `Blocked ·
+action`; checks silent for three hours → `Rework Queue`.
+
+**Nothing about certification moved.** The ending certifies nothing: the verdict is still produced
+by a verify run (the resumed one), and the verifier still never merges past itself (Rule D). The
+word is taught only to a verify dispatch.
+
 ## The terminal: `/fleet:push ship`
 
 **Whose terminal it is.** Not the execute command's — the **verifying** session's. Every
@@ -456,8 +525,10 @@ execute command (`prd:implement`, `bug:fix`, `task:implement`) ends at a green P
 handoff to the review state; the session that certifies the work is the one that calls
 this.
 
-**Comment the handoff, in this shape** (Rule I). An execute run's last write on the issue
-names the verifier it is handing to — a reader of the issue must never have to open the PR
+**Comment the handoff, in this shape** (Rule I). An execute run that hands off itself
+(`handed-off`) ends with a last write on the issue that names the verifier it is handing to
+(a `checks-pending` run leaves the service's own hand-off comment instead, and writes nothing
+here) — a reader of the issue must never have to open the PR
 to find out whether anything is still owed:
 
 ```

@@ -8,7 +8,7 @@
 [fleet]
 # The board's command vocabulary: the command each finding offers, the drive box, the shape
 # box and the catalogue. Without it every board row reads "No command".
-board_guidance = "knowledge/board-guidance.json"
+board_guidance = ".claude/board-guidance.json"
 
 [fleet.commands]
 namespace = "fleet"

@@ -54,8 +54,7 @@ remaining place a finder could still route its own work straight into the fleet.
 |---|---|---|
 | task, cleanup, audit | `triage` | Triage Queue |
 | idea | `intake` | Intake Queue |
-| a person's bug | bug front door → Fleet mints and routes | (Fleet's bug path) |
-| an agent-found defect | `task` with first body line `Defect: <one line>` — check gate may promote kind to bug | Triage Queue |
+| a bug (a person's report, or a defect an agent found) | `bug` through `file_issue` | Triage Queue |
 
 **Nothing but the checker may move an issue to `Implement Queue`.** That used to be a
 prohibition an agent had to remember (*"leave the eligibility marker off by default"*),
@@ -115,9 +114,9 @@ it started, so an answered escalation is never released to the fleet un-triaged.
 
 ## Type-specific
 
-- **bug** (`bug:create`): a **person** files `file_issue(kind: bug, …)` through Fleet's bug
-  front door. An **agent-found defect** (Rule G, audit, etc.) files `file_issue(kind: task, …)`
-  with the **first body line** `Defect: <one line>` — the check gate may promote kind to bug.
+- **bug** (`bug:create`): `file_issue(kind: bug, …)`, whether a person reported it or an agent
+  found it (Rule G, audit, a red CI lane). A bug filed through the tools is born in `Triage Queue`;
+  only the bug page in Fleet's browser UI keeps the person-confirmed reproduce stage.
   Set severity and source in the body, and include **forensic context** (repro steps,
   observed-vs-expected, stack/log excerpt, suspected file:line). Severity is a
   *description of the harm observed*, and the checker **derives priority from it**:
@@ -139,8 +138,7 @@ it started, so an answered escalation is never released to the fleet un-triaged.
 ## The docs-defect shape (a page is a claim, and a claim can be wrong)
 
 A user-facing documentation page is a **claim about the product**, so it can be wrong in the
-same two ways a capability can — and both defects are filed as bugs (or agent defects with
-`Defect:`), because the thing that is wrong is a claim, not a missing feature.
+same two ways a capability can — and both defects are filed as bugs, because the thing that is wrong is a claim, not a missing feature.
 
 - **A page promises something the product does not do.** The defect is **in the page**; the fix
   is to correct the page to what ships. This is **never** a request to build the feature —

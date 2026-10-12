@@ -1027,10 +1027,10 @@ assert WATCHDOG_CLOSABLE_STATES <= ALL_LIFECYCLE_STATE_NAMES, (
 # arbiter and the SOP renders each view's filter WITH the exclusions that encode
 # this same precedence. Keep the two in lockstep.
 #
-# NEEDS_MY_DECISION is the ONLY human view that gates the fleet, and is the one
-# with a zero target. MY_ACTION_QUEUE is scheduled work — it holds a context
-# switch (a GCP console, an SSH session, a merge review), so it is drained when
-# convenient, not on every cycle.
+# NEEDS_MY_DECISION is the ONLY human view that gates the fleet. MY_ACTION_QUEUE
+# holds a context switch (a GCP console, an SSH session, a merge review) and blocks
+# no agent, but the unblock drain takes both to zero: every item handled, or its
+# runnable instructions in the human's hands.
 # ---------------------------------------------------------------------------
 NEEDS_MY_DECISION = "Needs My Decision"
 MY_ACTION_QUEUE = "My Action Queue"
