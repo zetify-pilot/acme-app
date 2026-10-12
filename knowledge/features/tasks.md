@@ -11,8 +11,10 @@ them, and taking them out again.
 
 A row is a **capability**: durable, noun-phrased, and worth having for a second customer as
 much as the first. `Ships in` carries the PRD number once something ships it, and `—` while
-nothing does — which is what a **gap** is. `Needs` names the capabilities that must exist
-before this one can; `—` is written deliberately and means *can start immediately*.
+nothing does — which is what a **gap** is. `(retired)` in that cell marks a capability that is
+**not wanted**: the planner reads a bare `—` as work still to build, so a dropped capability
+must say so here rather than sit as an unowned gap. `Needs` names the capabilities that must
+exist before this one can; `—` is written deliberately and means *can start immediately*.
 
 The rows below were derived by `/fleet:program:shape PG-01` from the program *Customers can
 export their tasks as CSV.*, working backwards from the outcome the requester accepted on the
@@ -27,10 +29,11 @@ the program's detail file, `## Decomposition record`).
 | CAP-0003 | Every task becomes one row under a header naming the columns | 0001 | [tasks-export](../journeys/flows/tasks-export.md) | — | CAP-0001 |
 | CAP-0004 | Task text containing commas, quotes or line breaks survives the export intact | 0001 | [tasks-export](../journeys/flows/tasks-export.md) | — | CAP-0003 |
 | CAP-0005 | An empty task list exports as a file with only a header | 0001 | [tasks-export](../journeys/flows/tasks-export.md) | — | CAP-0003 |
-| CAP-0006 | A list too long to export is refused with a message a person can read | — | — | — | CAP-0003 |
+| CAP-0006 | A list too long to export is refused with a message a person can read | (retired) | — | — | CAP-0003 |
 | CAP-0007 | One customer's tasks can be told from another's | — | — | — | CAP-0003 |
 
-PRD 0001 ships CAP-0001 … CAP-0005 — the export and its edges for a customer. **CAP-0006**
-stays a gap: PRD 0001's necessity test deferred the too-long refusal (no ceiling was chosen, so
-the mechanism never fires and nothing breaks without it). **CAP-0007** stays a gap: it belongs
-to *One customer's tasks are separable from another's* (SL-003), which has no PRD yet.
+PRD 0001 ships CAP-0001 … CAP-0005 — the export and its edges for a customer. **CAP-0006** is
+retired, not a gap: the recorded decision of 2026-10-12 (steffen@zetify.ai) settled that the
+export never refuses over the list's size, so the too-long refusal is not wanted and no row
+should carry it as outstanding work. **CAP-0007** stays a gap: it belongs to *One customer's
+tasks are separable from another's* (SL-003), which has no PRD yet.
