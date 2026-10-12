@@ -32,11 +32,16 @@ _tasks: dict[int, Task] = {}
 _next_id = 1
 
 
+def _ordered_tasks() -> list[Task]:
+    # Finished tasks sort last; Python's stable sort keeps each group in
+    # insertion order. Snapshot the values first so a concurrent write cannot
+    # change the dict mid-iteration.
+    return sorted(list(_tasks.values()), key=lambda task: task.done)
+
+
 @app.get("/tasks")
 def list_tasks() -> list[Task]:
-    # Finished tasks sort last; Python's stable sort keeps each group in
-    # insertion order.
-    return sorted(_tasks.values(), key=lambda task: task.done)
+    return _ordered_tasks()
 
 
 @app.post("/tasks", status_code=201)
