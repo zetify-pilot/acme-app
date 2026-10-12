@@ -1,6 +1,10 @@
 """A minimal in-memory task list."""
 
-from fastapi import FastAPI, HTTPException
+import csv
+import io
+from datetime import datetime, timezone
+
+from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, Field, field_validator
 
 app = FastAPI(title="Tasks")
@@ -69,3 +73,21 @@ def complete_task(task_id: int) -> Task:
         raise HTTPException(status_code=404, detail="task not found")
     task.done = True
     return task
+
+
+@app.get("/tasks/export")
+def export_tasks() -> Response:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["title", "done"])
+    for task in _ordered_tasks():
+        writer.writerow([task.title, "true" if task.done else "false"])
+    body = buffer.getvalue().encode("utf-8-sig")
+    filename = f"tasks-{datetime.now(timezone.utc).date().isoformat()}.csv"
+    return Response(
+        content=body,
+        headers={
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
