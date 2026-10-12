@@ -2,6 +2,7 @@
 type: journey
 id: tasks-export
 kind: flow
+covers: [CAP-0001, CAP-0002, CAP-0003, CAP-0004, CAP-0005]
 ---
 
 # Take my task list away as a spreadsheet
@@ -10,6 +11,13 @@ The end-to-end flow behind PRD 0001. Written by `/fleet:prd:fill 0001` on the fl
 repository's `journeys` slot names no home for journey records, so the file sits at the
 path `prd:create` names (`knowledge/journeys/flows/<id>.md`) and the slot is reported
 unfilled in the PRD's open questions.
+
+**Confirmed at design (`/fleet:prd:blueprint 0001`, against
+`1ea420ff3db601905fd5777dd2bd51e5598d8162`).** The flow still holds as written: the design
+adds no step, re-orders no surface and adds no screen. The one surface inside the product —
+the export's address — stays an HTTP address rather than a page, so no `<Page>.spec.md` is
+authored and none is refreshed. The `covers:` ids above are the capability rows in the tasks
+feature map this flow exercises.
 
 ## The job
 
