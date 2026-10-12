@@ -55,7 +55,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -125,6 +127,33 @@ rather than from a prior stage's output — today [`slice:create`](#)
 Step 2, whose Step 3 turns these answers into permanent register rows. A command receiving
 decomposition gap rows or a settled PRD has already had this conversation and skips it.
 
+## A mockup reaches a person ONE way
+
+**Fleet infrastructure, identical in every repo and every session type — a person's terminal, a
+dispatched run, a seat. It is not a slot a repo fills:** it is stated here, once, in the `process-interview`
+slot's shared text, and it binds every product built with Fleet.
+
+A person looks at your design on **their own machine**. The box you run on has no address they can
+reach, so none of these is a delivery, however they are phrased:
+
+- *"open `knowledge/prds/…/mockups/…/index.html`"* (a path on the box);
+- *"run `python3 -m http.server 8899` and open `localhost:8899`"* (a loopback on the box);
+- *"I put it at `file:///…`"*, or a bare `127.0.0.1` / `0.0.0.0` URL.
+
+The delivery is the fleet's `ask` tool **with the mockup attached**: `upload_link` the folder (it must be a
+self-contained `index.html` plus its assets), then pass `attachments: [{"bundleId": "upl_…", "entry":
+"index.html"}]` on the question. Fleet answers with a **viewer link** the person can click — on a
+terminal it also shows on the Terminals page — and on a dispatched run it parks the question with the
+mockup beside it. Show the link whole. The built-in `AskUserQuestion` carries no attachment, so a
+question *about* a design is the fleet's `ask` tool; `AskUserQuestion` may take the person's answer only
+once the viewer link is in the question text.
+
+**It is enforced, not just asked.** A hook on `AskUserQuestion` refuses a question that names a mockup, a
+loopback, a file URL or an `.html` path without a fleet viewer link, and says to use the fleet's `ask` tool
+(`fleet_daemon.askguard`); the fleet MCP server's own instructions and the `ask` tool description say the
+same. If the fleet's `ask` tool is **not in your tool list**, the session is mis-wired: say so plainly and
+stop — never fall back to a path or a loopback.
+
 ## The question shape (mandatory)
 
 Ask with the **`AskUserQuestion`** tool. (Older command prose calls this "the built-in
@@ -152,7 +181,7 @@ Every question carries:
    pending → ask the blocking ones now, carry the rest to the next round.
 6. **A visual question gets a visual answer.** If the fork is genuinely about layout or
    appearance, render it (browser mockup, or the tool's per-option `preview`) rather
-   than describing it. A question that merely *concerns* the UI is usually still
+   than describing it — and deliver a mockup only as *A mockup reaches a person ONE way* says. A question that merely *concerns* the UI is usually still
    text-shaped.
 7. **Plain words, one concrete example, no bare ids — the card, above.** Not restated
    here; the card is the authority on register and it is already in the command you are

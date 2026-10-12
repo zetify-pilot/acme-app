@@ -22,11 +22,12 @@ is the **mapping**: which of their questions become cards in which of the two ro
 the run decides and reports, and which are withheld.
 
 **It has a second, quieter mode — the stub.** When the dispatch's `## Shaping` block says
-`step: stub`, the cut has *already* been refined and holds no PRD at all, and the fleet's drive is
-asking for the one thing the ladder was missing: the cut's **PRD stub**. That mode asks nothing,
-runs no round and writes no cell of the slice — it writes one numbered `status: stub` PRD under
-the cut, carrying only what the cut already promised, and lands it by PR (Step 2b). Everything
-in Steps 3 and 4 is the interview and does not run in that mode.
+`step: stub`, the cut has *already* been refined and holds no CAPABILITY PRD — none at all, or only
+its program's own composed proof (the `Verified by` PRD, which demonstrates the ground rather than
+being part of it) when that proof claims no commitment of its own (`implements:` empty) — and the fleet's drive is asking for the one thing the ladder was missing: the
+cut's **PRD stub**. That mode asks nothing, runs no round and writes no cell of the slice — it writes
+one numbered `status: stub` PRD under the cut, carrying only what the cut already promised, and lands
+it by PR (Step 2b). Everything in Steps 3 and 4 is the interview and does not run in that mode.
 
 **Headless only.** A person at a terminal has `slice:create` — which creates *or updates*, so
 it is this same interview whether the cut exists or not — and `slice:edit` for the narrower job
@@ -168,7 +169,8 @@ A live slice, or one with no member yet — the ordinary case for a cut from a b
 ### Step 2b: Stub mode — a refined cut with no PRD (no rounds)
 
 **Only when the block says `step: stub`.** The fleet asked for this because a driven program
-holds a cut that was refined and has no PRD of any status, and the next steps of the pipeline —
+holds a cut that was refined and has no CAPABILITY PRD — none at all, or only the program's composed
+proof — and the next steps of the pipeline —
 `prd:fill`, then `prd:blueprint` and `prd:plan` — need a stub to start from. **You ask no
 question, run no round, and write no cell of the slice, no register row and no bar.** The
 commitment was made when the cut was refined and the program started: this run decomposes what
@@ -180,9 +182,15 @@ is, and nothing else.
 **The refusals, by sentinel, with no result file** (*The headless contract* §9) — Step 2's all
 still apply, and these three are this mode's:
 
-- **The cut already has a member PRD, of any status** → nothing to write, and that is not a
+- **The cut already has a capability member PRD, of any status** → nothing to write, and that is not a
   failure: sentinel `success`, `pr: ""`, **no result file**, the summary saying which PRD is
-  there. The fleet records the settled landing itself. Never a second stub for a cut.
+  there. The fleet records the settled landing itself. Never a second stub for a cut. **The program's
+  own composed proof is NOT a capability member while it claims nothing** — its number is the program
+  row's `Verified by`, and a cut holding only that PRD (and no other) with an empty (or absent)
+  `implements:` is exactly the case this mode is for, so it is stubbed. **A composed proof whose
+  `implements:` names any commitment IS the cut's capability member**: it is
+  doing the cut's work as well as demonstrating the program, so nothing is written, as above. The fleet
+  does not ask for a stub over such a cut, so meeting one here means the corpus moved after the ask.
 - **The cut was never refined** (its row has no `Done when`, or its detail file has neither a
   `## Bar` nor any refine's text) → `needs-decision`: *"this cut has not been refined; refine
   it before a PRD is cut for it"* — a stub for an unrefined cut is a PRD invented from a
@@ -278,7 +286,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -480,6 +490,15 @@ looking for more of it.** Then:
 - **No prior questions in the payload** → round one. Read the repository, then ask.
 - **Prior questions AND their answers** → you were resumed. Consume them (§4) and continue
   where the round plan says you left off.
+- **A `## Decided already` block in your system prompt** → a person already answered earlier
+  rounds on this entity and the session that asked them is gone, so you are a cold start. The
+  block lists, oldest first, every answered question on the entity — the question text and the
+  answer verbatim, from this command and from earlier ones (a design inherits the fill's
+  answers). **Those are decided: never ask one again, never re-ask it reworded, and do not count
+  those rounds against your ceiling.** Plan from them as if you had asked them. Re-open one only
+  when the person's own answer says so ("revisit", "ask me again once ...", a send-back
+  instruction naming it); the fact that you would have chosen differently, or that the draft
+  has since moved, does not. Ask only what the block leaves open.
 - **Prior questions with no answers** → re-dispatched before the person got to it. **Do
   nothing at all and end the turn**: write the sentinel as `needs-decision` and stop.
   Re-asking is how a person receives the same round twice and learns to ignore both.

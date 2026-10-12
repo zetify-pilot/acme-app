@@ -233,7 +233,7 @@ one place, so `produces`/`consumes` edges stay a closed set the validator can ch
 `prd` · `design` · `ux-design` · `backend-plan` · `frontend-plan` · `reference` ·
 `mockup` · `mockup-approved` · `page-spec` · `screenshots` · `baseline` · `journey` ·
 `feature-map` · `acceptance-criteria` · `requirement-register` · `linear-issue` ·
-`status` · `audit-record` · `tests` · `verified-status`.
+`status` · `audit-record` · `check-result` · `tests` · `verified-status`.
 
 **Approval artifacts** (`approval_artifacts` in the schema — today: `mockup-approved`)
 are a distinct class: they record that a *human* signed off, and only a
@@ -405,7 +405,7 @@ validated together).
     "prd", "design", "ux-design", "backend-plan", "frontend-plan", "reference",
     "mockup", "mockup-approved", "page-spec", "screenshots", "baseline", "journey",
     "feature-map", "acceptance-criteria", "requirement-register", "linear-issue",
-    "status", "audit-record", "tests", "verified-status"
+    "status", "audit-record", "check-result", "tests", "verified-status"
   ],
   "step_required": ["id", "name", "kind", "actor", "body"],
   "required_when": {

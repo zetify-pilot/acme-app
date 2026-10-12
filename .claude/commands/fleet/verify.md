@@ -307,6 +307,42 @@ as `make seed` where the repo distinguishes them) — an already-provisioned
 workspace never picks those up from a rebuild alone, and skipping it reproduces the pre-fix symptom and returns a correct fix as
 broken ().
 
+### 3b. CI still running on this head — end `verify-awaits-checks`, do not hold the seat
+
+Measured : two Urgent verify runs each held a seat for 45–55 minutes doing nothing but
+`gh run watch` on a CI re-run. A seat is for judging, not for waiting. **When — and only when —
+the one thing between you and the verdict is the required checks finishing on the head you are
+judging**, in a fleet-dispatched run (your dispatch's outcome map teaches `verify-awaits-checks`;
+outside the fleet, an interactive session keeps watching), do not poll:
+
+1. **Judge everything that needs no green CI first** — §2's ledger, and V1 (claim closure) and V3
+   (the denominator) against the diff. The wait is for the *last* thing you cannot do yet, not a
+   reason to skip the rest.
+2. **Post the partial ledger** as a `comment` that carries the hidden marker
+   `<!-- fleet:verify-partial-ledger -->`, the head SHA, and one line per claim in the ledger's own
+   words: `closed` (with the evidence), `open` (with what is missing), or `needs-green-ci`. This
+   comment is what the resumed run starts from; a ledger that exists only in your head is lost.
+3. **Confirm the head will be judged on the right commit**: the PR's head equals the branch ref
+   (`gh api repos/{owner}/{repo}/pulls/<pr> --jq .head.sha` against `git ls-remote origin <branch>`),
+   the PR is not `CONFLICTING` / `DIRTY` (a conflicted PR gets no CI — take the §1 conflict row, not
+   this), and the checks are dispatched on that head.
+4. **Write the done-sentinel** with `status: "verify-awaits-checks"`, `pr` the PR URL and
+   **`verifiedSha` the 40-hex head you judged**, a one-sentence `summary` of where the ledger
+   stands, and stop. Do not `record_verdict`, do not merge, do not move the issue: the
+   service holds it in `Verifying` with your seat free.
+
+**What the service does** (the same checks watcher a coding run uses): required checks all green on
+that same head → the issue returns to `Verify Queue` **ahead of every fresh verify, urgent ones
+included** (started work goes first) with a comment naming your partial ledger, and a *new verify
+run* finishes the verdict; a red check, a conflict, or a head that is no longer your `verifiedSha`
+→ `Rework Queue` with the reason; the PR closed → `Blocked · action`.
+
+**The resumed run** reads the newest partial-ledger comment, re-proves only the lines still open
+(and any closed line the diff since its head touches — the head can only have moved if the service
+let it resume, so normally none), then runs §4 onward as usual. **The verdict is still a verify
+run's, and the verifier still never merges past itself** — ending `verify-awaits-checks` certifies
+nothing, and never ends a run whose only reason is that the checks are *red*: red is the §1 CI-red row.
+
 ### 4. The five checks
 
 Run V1–V3 on **every** change. V4 and V5 are conditional — see each.
@@ -326,7 +362,7 @@ Each line comes back as exactly one of:
 | **CLOSED** | names the `file:line` that satisfies it **and** the test that would fail without it |
 | **OPEN** | nothing in this diff satisfies it — quote what is missing |
 | **DEFERRED** | the implementer deferred it *and filed the follow-up* — **verify the issue key exists and is open**. A deferral whose issue does not exist is an OPEN line, not a deferred one; that is an unfixed cause under a closed ticket. |
-| **REFUTED** | the implementer showed the claim itself is wrong **and corrected the issue description**. If the description still asserts the refuted claim, the line is OPEN — the next reader will be sent after a defect that does not exist. |
+| **REFUTED** | the implementer showed the claim itself is wrong **and recorded the refutation as an `implementation-notes` comment** (read via `comments` / `latest_comment` kind=`implementation-notes`, or the PR body's ledger line). The description may still quote the original claim — that is the ledger source, not the correction; no tool rewrites a description ( / G4). If no `implementation-notes` row (and no PR-body ledger line) names the claim and what is true instead, the line is OPEN — the next reader will be sent after a defect that does not exist. |
 
 **A line naming a grant, role, binding, or credential is CLOSED only by the exercise —
 never by the configuration that shows the grant exists.** A claim of the shape *"grant X
@@ -436,7 +472,7 @@ flake, not a regression** — do not chase it (eng-460, eng-659).
 
 | Verdict | When | What happens |
 |---|---|---|
-| **VERIFIED** | every ledger line CLOSED / DEFERRED-with-a-live-issue / REFUTED-with-a-corrected-description, every named test neutered red, every scoped claim counted, the surface driven if there was one | merge (§6) |
+| **VERIFIED** | every ledger line CLOSED / DEFERRED-with-a-live-issue / REFUTED-with-implementation-notes, every named test neutered red, every scoped claim counted, the surface driven if there was one | merge (§6) |
 | **MERGED** | the PR merged while you were running (`python3 knowledge/scripts/pr_resolve_review_target.py resolve` → `merged`) — the fix is already on `main` | a NON-FAILING terminal: report it as landed (§6), never as a missing-branch failure, never escalate |
 | **INCOMPLETE** | any line OPEN | return it (§6) — never merge |
 | **BLOCKED** | you cannot evaluate it: no PR, red CI, a coupled half whose other half is unmerged (`bound`) — drive the fleet half first and re-pin, do not merge this half, a conflict the merge-scoped implementer reports unresolvable or needing a judgement, an unchanged re-entry, a third return, or a claim that needs a product decision to judge | park for the human (§6) |
@@ -731,7 +767,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you

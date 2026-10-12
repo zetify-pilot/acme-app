@@ -13,7 +13,11 @@ Fleet's tools API with a CI key (`FLEET_CI_KEY`), never through Linear. Nothing 
 can do to GitHub alone satisfies this gate; only a verify run that recorded a row does.
 
 PASS requires, on a gated kind (`bug` / `task` / `cleanup`):
-  * the newest verdict for this pull request is `verified` or `merged`, AND
+  * the pull request CLAIMS exactly ONE issue — a batch PR that closes several is refused,
+    because a verdict is recorded per issue and this gate is one check for the whole PR
+    (so a batch fix must be split first); AND
+  * the newest verdict for that WORK ITEM on this pull request is `verified` or `merged`
+    (read with `workKey`, so a sibling issue's verdict cannot mask it), AND
   * either its `headSha` is the PR's current head, OR the pull request's own change is the
     same at the verified commit X and at the head — matched by
     `git diff $(git merge-base BASE C) C | git patch-id --stable` (empty diffs never match).
@@ -21,6 +25,11 @@ PASS requires, on a gated kind (`bug` / `task` / `cleanup`):
 An older pass under a newer `incomplete` / `blocked` fails. A post-verdict code commit fails.
 A verified commit the checkout cannot fetch after one `git fetch` fails closed and names a
 new verify run.
+
+A TRANSIENT READ IS RETRIED. The Fleet read is attempted a bounded number of times with
+backoff on `TimeoutError` / `URLError` / `OSError` before the gate fails closed, so one Fleet
+or network hiccup no longer fails this required check and ejects a green, already-verified PR
+from the merge queue. Every attempt failing still fails closed — never pass-on-error.
 
 ── SHAPES THE RULE WAS NEVER ABOUT (all PASS) ─────────────────────────────────────
   * no `ENG-nnnn` resolvable from head ref / title / body — not lane work,
@@ -52,6 +61,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -114,6 +124,13 @@ CITATION_VERB_RE = re.compile(rf"\brefs?\b[^\n]*?\b{_KEY_SHAPE}-\d{{1,6}}\b", re
 CLOSING_VERB_RE = re.compile(
     rf"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b[^\n]*?\b{_KEY_SHAPE}-\d{{1,6}}\b", re.IGNORECASE
 )
+_CLOSING_VERB = r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)"
+_CLAIM_KEY = rf"\b{_KEY_SHAPE}-\d{{1,6}}\b"
+CLAIMED_KEYS_RE = re.compile(
+    rf"(?<![/:\w]){_CLOSING_VERB}:?[ \t]+{_CLAIM_KEY}"
+    rf"(?:[ \t]*(?:,|&|\band\b)[ \t]*(?:{_CLOSING_VERB}:?[ \t]+)?{_CLAIM_KEY})*",
+    re.IGNORECASE,
+)
 
 SHAPE_HEAD_REF_RE = re.compile(r"^agent/shape-", re.IGNORECASE)
 SHAPE_KNOWLEDGE_PREFIXES = (
@@ -127,6 +144,13 @@ SHAPE_KNOWLEDGE_PREFIXES = (
 SHAPE_KNOWLEDGE_FILES = frozenset({"knowledge/programs.md", "knowledge/slices.md"})
 
 HTTP_TIMEOUT_DEFAULT = 30.0
+
+#: How many times a Fleet read is attempted before the gate fails closed. A transient
+#: Fleet/network timeout is not a verdict, so the read is retried a bounded number of times
+#: with backoff; a green, already-verified PR must not be ejected from the merge queue over
+#: one hiccup. Every attempt failing still fails closed — bounded retry, never pass-on-error.
+HTTP_RETRY_ATTEMPTS_DEFAULT = 3
+HTTP_RETRY_BACKOFF_DEFAULT = 0.5
 
 
 class PrContext(NamedTuple):
@@ -154,6 +178,13 @@ class FleetHttpError(Exception):
         super().__init__(message)
         self.status = status
         self.body = body
+
+
+class FleetTransientError(FleetHttpError):
+    """A Fleet read that failed on a transient network error — retried before failing closed.
+
+    Subclasses `FleetHttpError` so every existing `except FleetHttpError` still catches it once
+    the retries are exhausted; the distinct type is what marks it retryable in `_fleet_get`."""
 
 
 def is_agent_lane_ref(head_ref: str) -> bool:
@@ -193,6 +224,37 @@ def extract_issue_key(head_ref: str, title: str, body: str) -> str | None:
         if km:
             return key(km)
     return None
+
+
+def claimed_issue_keys(head_ref: str, title: str, body: str) -> list[str]:
+    """Every issue key this pull request CLAIMS to fix, in order, de-duplicated.
+
+    A claim is a key in the head ref or title, or a key a closing keyword GOVERNS in the body:
+    `Closes KEY`, `Fixes: KEY`, `Resolves KEY, KEY and KEY`. A key that merely shares a line with
+    the word "fix" is a citation, not a claim — "the posture ENG-1's fix took", a cause-ledger
+    `**FIXED**` row, a quoted `/…:bug:fix KEY` command. Reading every key on such a line refused
+    one-issue pull requests as batches.
+
+    **A PR that claims more than one issue cannot be certified where it stands.** A verify verdict
+    is recorded per WORK ITEM (the issue), so a batch PR — one commit per issue, one shared head —
+    needs a verdict for each issue, while this gate is a single check for the whole pull request.
+    The first session to record does not decide the rest, and the gate cannot name which issue its
+    one passing verdict is about. Such work must be split: one pull request per issue.
+    """
+    seen: list[str] = []
+
+    def remember(m: re.Match[str]) -> None:
+        k = f"{TRACKER_PREFIX}-{m.group(2)}" if TRACKER_PREFIX else m.group(0).upper()
+        if k not in seen:
+            seen.append(k)
+
+    for source in (head_ref, title):
+        for m in ISSUE_KEY_RE.finditer(source or ""):
+            remember(m)
+    for claim in CLAIMED_KEYS_RE.finditer(body or ""):
+        for m in ISSUE_KEY_RE.finditer(claim.group(0)):
+            remember(m)
+    return seen
 
 
 def disclaimer_claims(body: str) -> list[tuple[str, str]]:
@@ -389,8 +451,28 @@ def _http_timeout() -> float:
     return HTTP_TIMEOUT_DEFAULT
 
 
-def _fleet_get(url: str, key: str) -> tuple[int, dict[str, Any] | None, str]:
-    """GET `url` with Bearer auth. Returns (status, json-or-None, raw-body)."""
+def _http_retry_attempts() -> int:
+    raw = (os.environ.get("FLEET_HTTP_RETRY_ATTEMPTS") or "").strip()
+    if raw:
+        try:
+            return max(1, int(raw))
+        except ValueError:
+            pass
+    return HTTP_RETRY_ATTEMPTS_DEFAULT
+
+
+def _http_retry_backoff() -> float:
+    raw = (os.environ.get("FLEET_HTTP_RETRY_BACKOFF") or "").strip()
+    if raw:
+        try:
+            return max(0.0, float(raw))
+        except ValueError:
+            pass
+    return HTTP_RETRY_BACKOFF_DEFAULT
+
+
+def _fleet_get_once(url: str, key: str) -> tuple[int, dict[str, Any] | None, str]:
+    """One GET `url` with Bearer auth. Returns (status, json-or-None, raw-body)."""
     req = urllib.request.Request(
         url,
         headers={
@@ -408,11 +490,11 @@ def _fleet_get(url: str, key: str) -> tuple[int, dict[str, Any] | None, str]:
         status = int(exc.code)
     except urllib.error.URLError as exc:
         reason = getattr(exc, "reason", exc)
-        raise FleetHttpError(f"could not reach Fleet at {url.split('?')[0]} ({reason})") from exc
+        raise FleetTransientError(f"could not reach Fleet at {url.split('?')[0]} ({reason})") from exc
     except TimeoutError as exc:
-        raise FleetHttpError(f"Fleet timed out at {url.split('?')[0]}") from exc
+        raise FleetTransientError(f"Fleet timed out at {url.split('?')[0]}") from exc
     except OSError as exc:
-        raise FleetHttpError(f"could not reach Fleet at {url.split('?')[0]} ({exc})") from exc
+        raise FleetTransientError(f"could not reach Fleet at {url.split('?')[0]} ({exc})") from exc
 
     payload: dict[str, Any] | None = None
     if raw.strip():
@@ -423,6 +505,27 @@ def _fleet_get(url: str, key: str) -> tuple[int, dict[str, Any] | None, str]:
         except json.JSONDecodeError:
             payload = None
     return status, payload, raw
+
+
+def _fleet_get(url: str, key: str) -> tuple[int, dict[str, Any] | None, str]:
+    """GET `url`, riding out a transient network error with a bounded retry, then failing closed.
+
+    A single Fleet/network timeout is not a verdict: retrying it keeps a required check from
+    failing (and a green PR from being ejected from the merge queue) over one hiccup. When
+    every attempt fails, the last error is re-raised as `FleetHttpError`, so the gate still
+    fails closed and never passes on an unreadable read."""
+    attempts = _http_retry_attempts()
+    backoff = _http_retry_backoff()
+    last: FleetTransientError | None = None
+    for attempt in range(attempts):
+        try:
+            return _fleet_get_once(url, key)
+        except FleetTransientError as exc:
+            last = exc
+            if attempt < attempts - 1:
+                time.sleep(backoff * (2**attempt))
+    assert last is not None
+    raise FleetHttpError(str(last)) from last
 
 
 def _fleet_message(payload: dict[str, Any] | None, raw: str) -> str:
@@ -532,9 +635,18 @@ def search_closed_issue(base_url: str, ci_key: str, issue_key: str) -> str | Non
     return None
 
 
-def fetch_verdict(base_url: str, ci_key: str, repository: str, pr_number: str) -> FleetVerdict | None:
-    """GET /api/tools/v1/verdicts?repository=&pr=&gate=verify (no sha). None = no-verdict."""
-    qs = urllib.parse.urlencode({"repository": repository, "pr": pr_number, "gate": "verify"})
+def fetch_verdict(
+    base_url: str, ci_key: str, repository: str, pr_number: str, work_key: str = ""
+) -> FleetVerdict | None:
+    """GET /api/tools/v1/verdicts?repository=&pr=&gate=verify[&workKey=] (no sha). None = no-verdict.
+
+    `work_key` scopes the read to the issue this PR is about, so a batch PR's other issues cannot
+    mask the one being gated.
+    """
+    params = {"repository": repository, "pr": pr_number, "gate": "verify"}
+    if work_key:
+        params["workKey"] = work_key
+    qs = urllib.parse.urlencode(params)
     url = f"{base_url.rstrip('/')}/api/tools/v1/verdicts?{qs}"
     status, payload, raw = _fleet_get(url, ci_key)
     if status == 404:
@@ -717,6 +829,23 @@ def try_closed_disclaimer(
     )
 
 
+AUDIT_CLOSED_RE = re.compile(r"\bis an? audit issue\b.*\bnot on Fleet's board\b", re.IGNORECASE | re.DOTALL)
+
+
+def is_closed_audit_carrier(exc: FleetHttpError, changed_paths: tuple[str, ...]) -> bool:
+    """A 403 that says "audit issue, seen by the census, closed, not on the board".
+
+    An audit carrier has no verify run by design (`audit` is not bug/task/cleanup), and Fleet
+    answers 403 once the issue is closed and off the board, so reading it raised before any
+    escape line was evaluated and ejected armed record PRs from the merge queue. Only THAT
+    answer, and only for a PR whose every changed path is under `knowledge/`, is a non-lane PR;
+    any other 401/403 stays a hard failure.
+    """
+    if exc.status != 403 or not AUDIT_CLOSED_RE.search(str(exc)):
+        return False
+    return bool(changed_paths) and all(p.startswith("knowledge/") for p in changed_paths)
+
+
 def fail(msg: str, disclaimer_note: str = "") -> int:
     print(f"::error::Verify Gate: {msg}")
     print("")
@@ -764,7 +893,17 @@ def main() -> int:
         print(f"Verify Gate: PASS — knowledge-only shaping PR, not lane work: {shape_note}.")
         return 0
 
-    key = extract_issue_key(head_ref, title, body)
+    claimed = claimed_issue_keys(head_ref, title, body)
+    if len(claimed) > 1:
+        shown = ", ".join(f"`{k}`" for k in claimed[:6]) + (" …" if len(claimed) > 6 else "")
+        return fail(
+            f"this pull request claims {len(claimed)} issues ({shown}) — a verify verdict is "
+            f"recorded per issue, but this gate is ONE check for the whole pull request and cannot "
+            f"certify a batch issue by issue. Split it into one pull request per issue; each then "
+            f"carries its own verdict (ENG-16931)."
+        )
+
+    key = claimed[0] if claimed else extract_issue_key(head_ref, title, body)
     if not key:
         if is_agent_lane_ref(head_ref):
             return fail(
@@ -794,12 +933,15 @@ def main() -> int:
     if not pr_number:
         return fail("missing required environment `PR_NUMBER` — the gate cannot bind a verdict to this pull request")
 
+    changed_paths = read_changed_paths()
+
     try:
         issue = fetch_issue(fleet_url, ci_key, key)
     except FleetHttpError as exc:
+        if is_closed_audit_carrier(exc, changed_paths):
+            print(f"Verify Gate: PASS — {key} is a closed audit carrier (no verify run by design): {exc}")
+            return 0
         return fail(str(exc))
-
-    changed_paths = read_changed_paths()
 
     if issue is None:
         try:
@@ -827,7 +969,7 @@ def main() -> int:
         return 0
 
     try:
-        verdict = fetch_verdict(fleet_url, ci_key, repository, pr_number)
+        verdict = fetch_verdict(fleet_url, ci_key, repository, pr_number, work_key=key)
     except FleetHttpError as exc:
         return fail(f"{key}: {exc}", disclaimer_note=disclaimer_note)
 

@@ -353,7 +353,7 @@ nothing is released, nothing is wired, no bar is run, no question is asked, no c
 is written, no scratch note is appended. Say this, in these words, and stop:
 
 > This program has no proof named. Nothing it does can read complete, and a cycle would drive
-> it toward no finish line. Run ` PG-NN` first.
+> it toward no finish line. Run `/fleet:program:prove PG-NN` first.
 
 **Why a refusal and not a finding.** A program's completion is arithmetic over the proof its
 cell names — every kept slice `complete` **and** that proof shipped (`slot:planning-model`).
@@ -378,7 +378,7 @@ An empty cell means one of two things, and only the program's own detail file
 (`knowledge/programs/PG-NN.md`, where `slot:programs` says one lives) can say which:
 
 - **No `## Bar` in the detail file → prove has never run.** The refusal above is the whole
-  message: the next step is ` PG-NN`.
+  message: the next step is `/fleet:program:prove PG-NN`.
 - **A `## Bar` is there → prove has already been through, and left the cell empty on
   purpose.** Only prove authors a program's bar, and its honest outcome is often *no proof
   yet*: either the proof PRD this program needs does not exist (its outcome *b* — the ask is
@@ -483,7 +483,7 @@ and broken, and §4 reports it as such. Feed them forward:
 | **Every** cell green on a cut whose `proof_waiver` is `deferred` with `"needs": "production"` | This cycle *is* the production check that waiver owes — Fleet has no production access, so the fleet's surfaces send a person here to run it. **Name the proof in this same cycle:** run `/fleet:slice:edit SL-NNN`, which names the `Verified by` and removes the waiver in one edit. Never leave the naming as a separate step for later; the card that sent the person here promised it follows once the check passes. A red or `unknown` cell names nothing. |
 
 **A program with no `## Bar` is a finding, not a licence to skip this.** Say so in §6 and
-name `` as the repair. **A slice whose `Done when` names a running
+name `/fleet:program:prove` as the repair. **A slice whose `Done when` names a running
 system and carries no `## Bar` is the same finding one tier down** — name
 `/fleet:slice:edit SL-NNN` as the repair (it authors the bar, digest-bound to the cell), and
 until it lands read that slice as *unmeasured*, never as met. Measured : 49 slices
@@ -611,6 +611,33 @@ and label churn is destructive.
 > that blocks planning, but it never runs `prd:create`, `prd:design` or `prd:plan` itself — the
 > authority to author on the fleet's behalf is exactly what the watch mode gives up.
 
+> **On a driven program the planning is the fleet's — attended or not.** The fleet asks for
+> every PRD's fill, design and plan itself while it drives a program, and those runs and their
+> questions are keyed `PRD-NNNN`, so neither the PRD's issue nor the run list shows them
+> (measured, , : a cycle read a PRD as "31 hours at
+> Needs Design, no design run dispatched" and asked a person to run `prd:design` by hand, while
+> the fleet had run that design eight times and it sat waiting on that person's answer). **So
+> before any planning verb, read the program's planning account:** the Fleet tool `board` with
+> `program=PG-NN`, field `drive.planning` — `started` is planning the fleet is running
+> (`waiting` = on a person's answer in the inbox, `answerLost` = an answer that never reached
+> its session), `held` is what it holds back and why. A PRD listed there is the fleet's: report
+> its state, put the fork its hold names to the person as a §5 question if a person owns it,
+> and **never tell a person to run `prd:create`, `prd:design` or `prd:plan` by hand, and never
+> dispatch a chain of your own over it.** Planning the fleet should be running and is not is a
+> fleet defect: file it as a bug and report it (§5's rule). The chain below is for a program
+> nobody drives (`drive.driven` false), or a PRD `drive.planning` does not list.
+
+> **A PRD held back by a tracker blocker is read from `drive.stuck`, not from its state.** A queued PRD whose
+> issue has an unresolved `blockedBy` is never picked up, and its state says "the fleet to pick it up"
+> (measured, , : PRD 0771 sat in Implement Queue ten hours
+> behind a parked issue of another program its own file no longer listed, and the page said nothing). The Fleet
+> tool `board` with `program=PG-NN`, field `drive.stuck`, walks it — for each held PRD, each blocker with `why`,
+> `who` moves it (`fleet`, `time`, `person`) and what the drive does itself (`act`: it drops a dependency edge the
+> register has already settled, on its own tick). **Never put a person a question about a hold whose `act` is set**
+> — the drive is doing it — and never ask one that has no `decision`. Where a `decision` is present it already
+> carries its options and what each does, and the page lets the person answer it inline: report it, do not
+> restate it as a second question.
+
 Moving work to `Implement Queue` is not your only lever. When the frontier's next action
 is a **planning verb** — a decided gap needs its PRD (`prd:create`), a drafted PRD needs
 its design (`prd:design`), a designed PRD needs a plan (`prd:plan`), a scope change needs
@@ -715,7 +742,9 @@ beyond ~2h with no PR activity · a frontier PRD blocked by a gate bug · a `Ver
 PRD stalled while siblings ship · state drift (a `Blocked · decision` item that somehow
 also sits in `Implement Queue` — remove nothing; escalate the contradiction) · anything
 the fleet's own INPUT REQUIRED comments raised that is not yet in `Blocked · decision`
-(move it).
+(move it). **A PRD at `Needs Design` or `Needs Plan` on a driven program is not stalled until
+`drive.planning` (§2c) says the fleet is not planning it** — and when it is the fleet's stall,
+it is filed as a fleet bug, never handed to a person as a command to run.
 
 #### Read the fleet — before you call anything a stall
 
@@ -888,7 +917,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -1204,9 +1235,32 @@ are green would cycle forever. After §6, the watch reads §1's arithmetic and a
    was `slice:edit `, not `program:ship`). So **"nothing left for an agent to do" is not
    "complete"**: a slice with no proof named, a proof not yet shipped, or any step a person owns
    that is `slice:edit` or `program:prove` rather than `program:ship` leaves the program OPEN — and so
-   does a slice whose waiver DEFERS its proof, which is that same `slice:edit` step owed. Write
-   `success` and put that person's exact step in the summary ("waiting on you: name a proof for
-    — `slice:edit`"). Whether the proof was
+   does a slice whose waiver DEFERS its proof, which is that same `slice:edit` step owed. **Such a
+   step is never a `success` with the step named in the summary, and never a command handed to the
+   person** — a driven program hands a person questions with their answers, nothing to launch
+   (measured, , : cycles wrote "waiting on you: name a proof for
+   " for a week, the page offered a "Start slice:edit" launch on a driven program, and the
+   person's own answer of  — "Run the live check, then close", which IS how
+    is proven — was never read again). So: **first read every decision already made on
+   this program** — the "Decided already" section the fleet appends to a cold start and to every
+   continued cycle, which holds every set a person answered on this program while it is open. If a
+   decision settles the step, it is **decided**: carry it out as far as this cycle may, never ask it
+   again, and say in the summary which decision you are carrying out (its date and its answer) and
+   what is left of it — a check only someone with production access can run stays a production
+   check, named as decided, with `success`. If no decision settles it, **ask it**: two to four
+   answers, your recommendation first and marked, ending `needs-decision`; and when an earlier
+   decision is close to it but does not settle it, the question says so in plain words — what was
+   decided, on which date, and why this is a different decision. A decided step a person still has
+   to carry out (a production check) is **tracked as a task the fleet files**, citing the cut, into
+   `Triage Queue` and linked on the program page — never file a second one, and never ask it.
+   **A question is only for a decision that is genuinely the person's** — scope, priority, a
+   trade-off, accept or waive. Never ask a person to run a command or an agent, to open a terminal,
+   or whether something is a fleet fault (measured, , : a cycle
+   offered "run the attended cycle at a terminal", "run the design and create commands by hand" and
+   "treat it as a fleet fault"). A command the cycle needs is one it runs; a stall the fleet causes —
+   a lane that is not dispatching, a run that never starts — is a fleet defect, **filed as a bug**
+   through the fleet's filing tool and reported, never asked. The fleet refuses a question that
+   breaks this at its ask boundary and files it as a bug itself. Whether the proof was
    *real* is `program:ship`'s judgement, not the watch's — and the watch, having skipped §1b,
    never invents a bar reading it did not take.
 2. **waived and nothing left open → the waived end; stop.** When the program's OWN proof is

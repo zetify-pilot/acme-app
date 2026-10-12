@@ -78,21 +78,19 @@ it goes.
    for a bug). Severity is a *description of the
    harm you observed*, not a routing decision — the checker derives the tracker
    priority field from it.
-3. **File it through the Fleet tools — two branches:**
+3. **File it through the Fleet tools.** Call `file_issue` with `kind: "bug"`, the title,
+   the body, `command: "bug:create"` (or `command: "<that command> (Rule-G deferral)"` when
+   another command's Rule G sent you here), and `repo` = the lane named by the
+   **`tracker-identity`** slot **only when the work lands in another repository**. The same
+   call serves a bug a person reported to you and a defect you found yourself (a red CI
+   lane, a broken test, a regression you hit mid-run). For a defect found during other work,
+   put provenance in the body as `Found during: <KEY>`.
 
-   **Person filing a bug.** Call `file_issue` with `kind: "bug"`, the title, the body,
-   `command: "bug:create"` (or `command: "<that command> (Rule-G deferral)"` when another
-   command's Rule G sent you here), and `repo` = the lane named by the **`tracker-identity`**
-   slot **only when the work lands in another repository**. This is Fleet's **bug front
-   door**. Fleet searches for prior art on every filing and attaches the dedupe record, so
-   **run no search of your own**. Print the returned `id`, Fleet's `message`, and the
-   `dedupe` record. `/fleet:check` re-runs the full prior-art search before anything is
-   released.
-
-   **Agent-found defect (Rule G).** Call `file_issue` with `kind: "task"` (not bug), the
-   title, and a body whose **first line** is `Defect: <one line>` — the check gate may
-   promote kind to bug. Put provenance in the body as `Found during: <KEY>` linking back
-   to the originating issue. Same `command` / `repo` rules as above.
+   A bug filed through the tools is born in **`Triage Queue`** as a bug — no person-confirmed
+   reproduce stage, whoever's key the session holds. `/fleet:check` confirms it is real and
+   runs the full prior-art search before anything is released, so **run no search of your
+   own**. Print the returned `id` and Fleet's `message`; the filing is done when its tracker
+   key appears (`get_issue` on the `id`). Never re-file a bug as a `task` to reach Triage.
 
    **No Fleet tools? Stop.** When the session has no Fleet tools, stop with: *this command needs the Fleet tools; create a personal key on Fleet's API keys page*. There is no other filing path — never fall back to a tracker script or a tracker key, which a machine outside the install's cluster does not have and must not need.
 

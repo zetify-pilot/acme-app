@@ -62,7 +62,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -347,8 +349,8 @@ plan is never hand-written; if the output looks wrong, fix the rows/edges and re
    reads it as in-flight/built and a `Depends on` edge carries the ordering.
 8. **Tasks and bugs the decomposition files are placed and chained, never loose.**
    Every task or bug this decomposition creates is filed through Fleet's `file_issue`
-   (`kind: "task"` or, for a person's bug report, `kind: "bug"`; agent-found defects as
-   `kind: "task"` with first body line `Defect: <one line>`). Put placement in the body as
+   (`kind: "task"`, or `kind: "bug"` for a defect, whether a person reported it or you found
+   it). Put placement in the body as
    plain lines — `Program: <id or name>` and `Feature area: <name>` (``,
    the `area:` field). **That placement is authored, not derived** — `component → feature
    area` is neither total nor unique — so default it only where it resolves unambiguously,

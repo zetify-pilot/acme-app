@@ -50,7 +50,7 @@ Drive a PRD to completion. **Two modes:**
 >
 > The ONLY thing exempt from reproduce-first is *unfinished* implementation — behavior that was never written yet (just finish writing it, test-first per the wave template). The moment code that *should* work doesn't, it is a bug → `/fleet:bug:fix` discipline. When unsure which it is, treat it as a bug.
 >
-> **Out-of-scope findings are TRACKED, not absorbed (autonomous-drive.md Rule G).** If you discover a bug or important issue that is outside this PRD's scope: out-of-scope bug → `/fleet:bug:create` (Fleet `file_issue` — agent defects as task with first body line `Defect: <one line>`); important follow-up task → `/fleet:task:create`; log it in the Autonomous Decisions Log; NEVER fix it inline. **If the Fleet tools refuse the filing or a handoff move, end this run `failed`** — name the follow-up and the refusal; do not carry on as if it were done. Keep the PRD scope tight.
+> **Out-of-scope findings are TRACKED, not absorbed (autonomous-drive.md Rule G).** If you discover a bug or important issue that is outside this PRD's scope: out-of-scope bug → `/fleet:bug:create` (Fleet `file_issue` kind bug); important follow-up task → `/fleet:task:create`; log it in the Autonomous Decisions Log; NEVER fix it inline. **If the Fleet tools refuse the filing or a handoff move, end this run `failed`** — name the follow-up and the refusal; do not carry on as if it were done. Keep the PRD scope tight.
 >
 > **In autonomous (default) mode this matters even more:** the eventual ship rides **green CI with no human reading the diff** — the independent `/fleet:prd:verify` session certifies acceptance criteria and then `/fleet:push ship` auto-merges. CI catches build/lint/test breaks and verify checks the acceptance criteria, but neither reliably catches a plausible-but-wrong symptom-patch buried in a passing implementation — so reproduce-first is the ONLY thing standing between a symptom-patch and shipped-broken code. A verify gap may NOT be flipped to PASS without red→green evidence (Phase C).
 
@@ -152,9 +152,10 @@ via `/fleet:bug:create` or `/fleet:task:create` (Rule G). If you genuinely
 never made a judgment call, the log reads: `- No autonomous judgment calls were
 required; the PRD and plans were fully specified.`
 
-**When the log goes into the issue description, it goes under `## Implementation notes
-(<date>)` — never `## Decision (<date>)`**, which is reserved for a human's answer to a
-question the fleet stopped on
+**Record the log as an `implementation-notes` comment** (`comment` kind=`implementation-notes`)
+— never a description rewrite (no tool rewrites one;  / G4), and **never under
+`## Decision (<date>)`**, which is reserved for a human's answer to a question the fleet
+stopped on
 ([`decision-write-back.md`](../../../process/decision-write-back.md), ).
 
 ---
@@ -802,7 +803,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -978,7 +981,7 @@ Co-Authored-By: <the attribution line this session was given>
 This SHA is what D3 hands to `/fleet:push ship`. (The full Autonomous Decisions
 Log goes in the **PR body** — D3.)
 
-### D3. Open PR, wait for green CI, hand to verify (success path only) — via `/fleet:push`
+### D3. Open PR, hand to verify (success path only) — via `/fleet:push`
 
 **D0's rework re-proof gate must already have passed — a rework entry never reaches D3 with an
 open `REWORK_LEDGER` row.** The handoff is only honest when the verifier's own cited evidence
@@ -986,13 +989,21 @@ passes at the head being handed off; a run that cannot show that keeps working o
 
 **The coordinator does NOT hand-run the push, and does NOT merge.** Delegate to a push
 sub-agent running [`/fleet:push`](../push.md) (Sonnet) — the open-PR-and-stop mode, not
-`ship`. When CI is green, call `move_issue(to: "review")` (Verify Queue), then
-**write the done-sentinel with `status: "handed-off"`** (its path and keys are named by the
-dispatch mission; see [`../../../process/autonomous-drive.md`](../../../process/autonomous-drive.md)
-→ *The dispatch envelope*), and stop. **If the handoff move is refused, end this run
+`ship`. **In a fleet-dispatched run you do not wait for CI** (~26% of implement and rework
+seat-hours went to exactly that): once the PR is open, its head equals the remote ref, and the
+checks are dispatched on it, **write the done-sentinel with `status: "checks-pending"`**, `pr`
+the PR URL and `verifiedSha` that 40-hex head (its path and keys are named by the dispatch
+mission; see [`../../../process/autonomous-drive.md`](../../../process/autonomous-drive.md)
+→ *The terminal: `checks-pending`* and *The dispatch envelope*), and stop. Do **not** call
+`move_issue` — the service moves the issue to `Verify Queue` when the required checks are green
+on that head, or returns it to `Rework Queue` with the red checks, the conflict or the moved head
+named. **A human-driven `--manual` run, or a dispatch whose mission does not teach
+`checks-pending`, waits for green CI, calls `move_issue(to: "review")` (Verify Queue), then
+writes `status: "handed-off"`** as before, and stops. **If a handoff move you make is refused, end this run
 `failed`** — name the refusal; do not claim handed-off. **The position move is not the whole
 terminal — a run that stops without the sentinel is a run the daemon reads as ended short and
-relaunches**, which is the sixteen `prd:implement` give-ups in . That move is the
+relaunches**, which is the sixteen `prd:implement` give-ups in . The hand-off
+into `review` / Verify Queue — your move, or the service's on green checks — is the
 handoff: the fleet daemon routes a PRD issue in `review` / Verify Queue to
 [`/fleet:prd:verify`](verify.md), which runs with a fresh context, refutes the PASSes, and
 ships on an all-PASS or pass-with-follow-up verdict. Hand it: the **verified SHA from
