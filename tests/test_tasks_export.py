@@ -139,7 +139,15 @@ def test_title_with_a_double_quote_stays_one_row() -> None:
     title = 'say "hello" loudly'
     client.post("/tasks", json={"title": title})
 
-    rows = _rows(client.get(EXPORT))[1:]
+    response = client.get(EXPORT)
+    # Assert the raw bytes carry the RFC-4180 form: the field is quoted and
+    # the embedded quotes are DOUBLED. A round-trip through csv.reader cannot
+    # see this: csv.reader only treats a '"' as a quote when it is the FIRST
+    # character of a field, so an unquoted "say "hello" loudly" decodes to the
+    # same value as the correctly-quoted form. Only the bytes catch it.
+    assert b'"say ""hello"" loudly",false\r\n' in response.content
+
+    rows = _rows(response)[1:]
     assert rows == [[title, "false"]]
 
 
