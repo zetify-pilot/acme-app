@@ -49,3 +49,22 @@ owner: run:b33e1dce-33e7-44df-b697-982b86884078
 ## Recurring across PRDs (flag loudly)
 - Friction #1 (no `make` / translated test targets) is now **recurring across five runs**
   (`#2`, `#9`, `#7`, `#13`, `#32`) and still unaddressed. Promote it.
+
+## Rework cycle (2026-10-12, later run — checks-timed-out re-dispatch)
+- The first handoff left PR #39 open on head `5ee1312` with checks dispatched, but the fleet
+  could not read the PR for two hours (its own note: "the forge errored, the branch or PR is
+  gone, or the fleet's token no longer reaches the repository") and moved the issue to Rework
+  Queue with `checks-timed-out`. No verdict was ever recorded, so this is **not** a refuted
+  verification — the fix was never reviewed.
+- The change itself was re-read and stands: `knowledge/slices.md` SL-001's `Disposition` reads
+  `superseded by SL-002, SL-003`; SL-002 and SL-003 are byte-identical to `main`. Nothing about
+  the cause ledger changed.
+- Remediation: a fresh head on the same branch and the same PR, so a new `pull_request`
+  `synchronize` event dispatches `ci` on a head the fleet has not already given up on.
+- New friction this cycle: the seat's GitHub token carries **no `checks:read`** permission, so
+  `check-runs` / `statusCheckRollup` / `gh pr checks` all return HTTP 403
+  (`Resource not accessible by integration`). Checks can only be *inferred* from
+  `mergeStateStatus: UNSTABLE` held across a re-read, never counted. The sibling run on
+  `#33`/PR #40 hit the same wall the same day. **Recurring across two runs** — the dispatch
+  missions ask a seat to confirm `check-runs total_count` is non-zero, which no seat here can
+  actually do.
