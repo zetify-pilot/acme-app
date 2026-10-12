@@ -47,3 +47,35 @@ owner: run:seat-fleet-worker-5b19fe99
 ## Recurring across PRDs (flag loudly)
 - Friction #1 (no `make` / translated test targets) is now **recurring across five runs**
   (`#2`, `#9`, `#7`, `#13`, `#28`) and still unaddressed. Promote it.
+
+## Rework cycles (post-handoff)
+
+### Cycle 1 — `checks-timed-out` at 2026-10-12T19:56Z (not a defect)
+The issue came back to Rework Queue with the note *"the fleet could not read PR #30 for 2
+hours … so its checks were never seen"*. That was a **forge read incident, not a code
+defect**: four in-flight PRs (`#30`, `#37`, `#39`, `#40`) timed out in the same second. The
+previous run re-confirmed the PR and re-handed off with **no new push**.
+
+### Cycle 2 — `checks-timed-out` at 2026-10-12T22:46Z (dispatch premise false)
+This run was dispatched as *"verification REFUTED this fix — close the OPEN cause-ledger
+lines"*. **That premise does not hold for this issue:**
+
+- `get_verdict` for PR #30 → `no-verdict` — no verify verdict was ever recorded at any head.
+- The issue history shows the re-dispatch cause is `checks-timed-out` (implementing → rework
+  at 19:56Z and again 22:46Z), **not** a refuted verification.
+- No refutation comment exists on the issue or on PR #30 (both comment lists are empty of any
+  verify-stop / open-line text).
+
+So there was nothing to re-fix: the cause ledger stands **2/2 closed** and the change is
+unchanged. `neuter_check.py --base origin/main` exits 0 (`test_health_reports_ok` green → red
+on reverting `app/main.py` → green restored); full suite `10 passed`.
+
+**Why it keeps bouncing (systemic, recorded honestly).** Issue `#32`/PR `#39` took the same
+`checks-timed-out` transition, and the fleet's fact store reports `checks: no CI run is
+recorded for this pull request`. The seat's GitHub token carries no `checks:read` /
+`actions:read` / `branch-protection:read` (all HTTP 403 `Resource not accessible by
+integration`), so neither this seat nor the checks-watch can observe CI on this repo. Checks
+can only be *inferred* from `mergeStateStatus: UNSTABLE` on the head.
+
+**This cycle.** Re-handed off on a fresh head so the checks-watch restarts on a new commit;
+the fix itself is byte-identical to cycle 0.
