@@ -63,6 +63,12 @@ def test_export_answers_with_a_file_not_json() -> None:
     assert disposition.startswith("attachment")
     assert "filename=" in disposition
 
+    # AC-1 is about a *file*, not a page: the body is the CSV text, never a
+    # JSON document wearing CSV headers.
+    body = response.content.decode("utf-8-sig")
+    assert not body.lstrip().startswith(("{", "["))
+    assert body.startswith("title,done")
+
 
 def test_header_and_one_row_per_task() -> None:
     client.post("/tasks", json={"title": "alpha"})
