@@ -2,24 +2,29 @@
 type: prd
 prd: 0001
 title: A customer exports their own task list and opens it in a spreadsheet
-status: prd-drafted
+status: designed
 status_history:
   - { state: stub, at: 2026-10-11T09:21:01Z, by: prd }
   - { state: prd-drafted, at: 2026-10-11T23:58:24Z, by: fleet:prd:fill }
+  - { state: designed, at: 2026-10-12T01:02:07Z, by: fleet:prd:blueprint }
 slice: SL-002
 area: tasks
 priority: medium
 date: 2026-10-11
 author: steffen@zetify.ai
 depends_on: []
+implements: [REQ-0001, REQ-0002, REQ-0003, REQ-0004, REQ-0005, REQ-0006, REQ-0007, REQ-0008]
 source_ideas: []
 ---
 
 # PRD 0001 — A customer exports their own task list and opens it in a spreadsheet
 
-> **Status:** prd-drafted. The stub was filled by `/fleet:prd:fill 0001` on the fleet, in
+> **Status:** designed. The stub was filled by `/fleet:prd:fill 0001` on the fleet, in
 > three rounds of written questions; the brief the interview started from is kept below
-> under `## Brief`. Ready for design.
+> under `## Brief`. The technical and UX design was written by `/fleet:prd:blueprint 0001`
+> on the fleet in two rounds of written questions, against
+> `1ea420ff3db601905fd5777dd2bd51e5598d8162`; see `design.md` and `ux-design.md` beside this
+> file. Ready for plan.
 
 ## Brief
 
