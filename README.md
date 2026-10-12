@@ -11,7 +11,7 @@ pip install -e '.[dev]'
 ## Running the tests
 
 ```bash
-pytest
+pytest -q
 ```
 
 This is the exact command CI runs (see `.github/workflows/ci.yml`). Where `make` is
