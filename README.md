@@ -4,6 +4,8 @@ A tiny task-list web service — the pilot repository Fleet works on.
 
 ## Install
 
+Requires Python 3.11 or newer (see requires-python in pyproject.toml).
+
 ```bash
 pip install -e '.[dev]'
 ```
