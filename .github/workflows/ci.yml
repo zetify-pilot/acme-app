@@ -4,12 +4,16 @@ on:
   push:
     branches: [main]
 jobs:
+  # The job id `test` is the check-run name; keep it.
   test:
-    runs-on: ubuntu-latest
+    # GitHub-hosted runners are unavailable to this org (billing), so CI runs on the
+    # dedicated self-hosted runner acme-ci-1 (GCP fleet-acme-4d23, subnet fleet-ci).
+    runs-on: [self-hosted, acme-ci]
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install -e '.[dev]'
-      - run: pytest -q
+      # A fresh venv per job: the runner is persistent, so nothing installed by one PR
+      # may leak into the next one's interpreter.
+      - run: python3 -m venv "$RUNNER_TEMP/venv"
+      - run: '"$RUNNER_TEMP/venv/bin/pip" install -q -e ".[dev]"'
+      - run: '"$RUNNER_TEMP/venv/bin/pytest" -q'
