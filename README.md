@@ -17,6 +17,8 @@ pytest
 This is the exact command CI runs (see `.github/workflows/ci.yml`). Where `make` is
 installed, `make test` runs the same suite.
 
+Acceptance probe TRM-15: this line is temporary.
+
 ## Running the app
 
 ```bash
