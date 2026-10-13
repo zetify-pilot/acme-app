@@ -9,6 +9,7 @@ pip install -e '.[dev]'
 ```
 
 ## Running the tests
+VER-04 rework probe
 
 ```bash
 pytest
