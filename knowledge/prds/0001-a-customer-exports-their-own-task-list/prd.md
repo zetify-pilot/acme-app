@@ -2,12 +2,13 @@
 type: prd
 prd: 0001
 title: A customer exports their own task list and opens it in a spreadsheet
-status: planned
+status: implementing
 status_history:
   - { state: stub, at: 2026-10-11T09:21:01Z, by: prd }
   - { state: prd-drafted, at: 2026-10-11T23:58:24Z, by: fleet:prd:fill }
   - { state: designed, at: 2026-10-12T01:02:07Z, by: fleet:prd:blueprint }
   - { state: planned, at: 2026-10-12T01:14:00Z, by: plan }
+  - { state: implementing, at: 2026-10-12T01:18:23Z, by: implement }
 slice: SL-002
 area: tasks
 priority: medium
