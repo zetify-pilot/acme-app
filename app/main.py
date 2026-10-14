@@ -1,7 +1,7 @@
 """A minimal in-memory task list."""
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 app = FastAPI(title="Tasks")
 
@@ -9,6 +9,11 @@ MAX_TITLE_LENGTH = 200
 
 
 class TaskIn(BaseModel):
+    # Surrounding whitespace is stripped before any constraint runs, so the blank
+    # check, the length rule, what gets stored and what comes back are all the
+    # same title — the length rule never judges a string we would not store.
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     title: str = Field(max_length=MAX_TITLE_LENGTH)
 
     @field_validator("title")
