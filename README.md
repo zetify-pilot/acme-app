@@ -35,3 +35,4 @@ uvicorn app.main:app --reload
 ## Contributing
 
 Run `pytest` and make sure it passes before you open a pull request.
+<!-- acceptance probe VER-17787 -->
