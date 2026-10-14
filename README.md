@@ -4,6 +4,8 @@ A tiny task-list web service — the pilot repository Fleet works on.
 
 ## Install
 
+Requires Python 3.11 or newer (see requires-python in pyproject.toml).
+
 ```bash
 pip install -e '.[dev]'
 ```
@@ -22,3 +24,14 @@ installed, `make test` runs the same suite.
 ```bash
 uvicorn app.main:app --reload
 ```
+
+## Project layout
+
+- `app/main.py` — the FastAPI application and its task endpoints
+- `tests/` — the pytest suite CI runs
+- `knowledge/` — the product knowledge (programs, PRDs) the fleet works from
+- `.github/workflows/ci.yml` — the CI workflow that runs the test suite
+
+## Contributing
+
+Run `pytest` and make sure it passes before you open a pull request.

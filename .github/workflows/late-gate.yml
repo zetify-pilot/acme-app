@@ -1,0 +1,19 @@
+name: late-gate
+# A second check that reports only when dispatched by hand on a branch, with the outcome chosen.
+# Acceptance tests use it to make a required check go red on a PR AFTER Fleet armed its merge
+# (the "verify armed while CI was still running, CI then failed" case). Not required by default.
+on:
+  workflow_dispatch:
+    inputs:
+      outcome:
+        description: "green or red"
+        required: true
+        default: green
+jobs:
+  late-gate:
+    runs-on: [self-hosted, acme-ci]
+    timeout-minutes: 5
+    steps:
+      - run: '[ "$OUTCOME" = green ] || { echo "late-gate asked to report red"; exit 1; }'
+        env:
+          OUTCOME: ${{ inputs.outcome }}

@@ -22,11 +22,18 @@ is the **mapping**: which of their questions become cards in which of the two ro
 the run decides and reports, and which are withheld.
 
 **It has a second, quieter mode — the stub.** When the dispatch's `## Shaping` block says
-`step: stub`, the cut has *already* been refined and holds no PRD at all, and the fleet's drive is
-asking for the one thing the ladder was missing: the cut's **PRD stub**. That mode asks nothing,
-runs no round and writes no cell of the slice — it writes one numbered `status: stub` PRD under
-the cut, carrying only what the cut already promised, and lands it by PR (Step 2b). Everything
-in Steps 3 and 4 is the interview and does not run in that mode.
+`step: stub`, the cut has *already* been refined and holds no CAPABILITY PRD — none at all, or only
+its program's own composed proof (the `Verified by` PRD, which demonstrates the ground rather than
+being part of it) when that proof claims no commitment of its own (`implements:` empty) — and the fleet's drive is asking for the one thing the ladder was missing: the
+cut's **PRD stub**. That mode asks nothing, runs no round and writes no cell of the slice — it writes
+one numbered `status: stub` PRD under the cut, carrying only what the cut already promised, and lands
+it by PR (Step 2b). Everything in Steps 3 and 4 is the interview and does not run in that mode.
+
+**And a third — the apply.** When the block says `step: apply`, a person has *already answered* a question about
+this cut and the answer is a register edit; the fleet's drive asks you to make it, so the person is not asked
+again and no task is parked for them. The block's `before.decision` is the recorded answer. That mode asks
+nothing, runs no round and edits **only** the cut's `Verified by` or `Disposition` cell — never its promise
+(Step 2c). Steps 3 and 4 do not run in that mode.
 
 **Headless only.** A person at a terminal has `slice:create` — which creates *or updates*, so
 it is this same interview whether the cut exists or not — and `slice:edit` for the narrower job
@@ -76,6 +83,7 @@ The slice to refine: $ARGUMENTS
     {"id": "read",       "name": "Read the slice, its program, its members and its ground",     "kind": "io",       "actor": "coordinator", "consumes": ["requirement-register"], "body": "step-1-read-the-slice"},
     {"id": "refusals",   "name": "The refusals — by sentinel, before any question",             "kind": "gate",     "actor": "coordinator", "gate": "hard", "body": "step-2-the-refusals"},
     {"id": "stub",       "name": "Stub mode (`step: stub`) — no rounds: one numbered PRD stub under a refined cut", "kind": "author", "actor": "coordinator", "produces": ["prd"], "body": "step-2b-stub-mode"},
+    {"id": "apply",      "name": "Apply mode (`step: apply`) — no rounds: carry out the recorded answer by editing the cut's `Verified by` or `Disposition`", "kind": "author", "actor": "coordinator", "produces": ["requirement-register"], "body": "step-2c-apply-mode"},
     {"id": "rounds",     "name": "The rounds — discovery, then the forks",                      "kind": "loop",     "actor": "coordinator", "loop": {"max_rounds": 2, "exit": "the person answered the fork round, or the ceiling was reached and what stands is written with its open items"}, "body": "step-3-the-rounds"},
     {"id": "author",     "name": "Write it — the row, the register rows, the detail file, the bar", "kind": "author", "actor": "coordinator", "produces": ["requirement-register"], "body": "step-4-write-it"},
     {"id": "land",       "name": "Land it — the branch, the PR, the merge",                      "kind": "gate",     "actor": "coordinator", "gate": "hard", "body": "step-5-land-it"},
@@ -99,7 +107,7 @@ printf '%s\n' "${FLEET_RESULT_FILE:-<unset>}"
   `$ARGUMENTS` is its register id (`SL-NNN`), the mission's `## Shaping` block carries the
   requester, any instruction and the row as served, and the payload says which round this
   is — *The headless contract* §1. Read the block's `step`: **`stub`** → Steps 1, 2 and 2b, then
-  Step 6's report; anything else (`shape`, or no `step` — a block written before the field) →
+  Step 6's report; **`apply`** → Steps 1 and 2c, then Step 6's report (Step 2's refusal of a finished cut does not apply — see 2c); anything else (`shape`, or no `step` — a block written before the field) →
   Steps 1–6 as written, the interview.
 - **Unset** → a person is at a terminal, and this is the wrong verb for them. Say exactly
   this and stop, writing nothing: **This command runs only on the fleet. At a terminal, run
@@ -165,10 +173,65 @@ By sentinel, before any question, in the form *The headless contract* §9 gives:
 
 A live slice, or one with no member yet — the ordinary case for a cut from a brief — goes on.
 
+### Step 2c: Apply mode — a recorded answer carried out (no rounds)
+
+**Only when the block says `step: apply`.** A person answered a question about this cut (`before.decision`:
+`question`, `answer`, `then` — what the answer says happens —, `answeredAt`, `answeredBy`, `owed` — what the cut's
+proof still owes), and the program's board still reads the cut as a step only a person can take. The answer is the
+decision; **you carry it out and ask nothing**. Never ask the decision again, and never write a card: the whole
+point of this mode is that an answer already given is not asked for twice.
+
+**What you may write — two cells, and only to say what the answer says.**
+- `Verified by`: name the proof the answer chose (a PRD number, a `drill:<stem>`), record that it is owed
+  until a reading is taken (the register's `owed:` spelling), or record why none is needed — exactly as
+  `edit.md` Step 3 allows, with its refusals: **narrow or correct, never widen**.
+- `Disposition`: waived, withdrawn or excused, citing the decision record when the register's guard asks for one.
+
+**What you never write:** `Done when`, `Depends on`, the promise rows, the bar, a `Kind`. Those make or change a
+promise, and an agent may never promise something new. If the answer can only be carried out by editing one of
+them, write nothing and say so (below). The cut's finished promise is never rewritten to fit what shipped.
+
+**What the answer cannot do — and the two endings that are not an edit.** Tell them apart by the answer's own
+*condition* ("close once an operator has taken the readings", "name the proof after the drill"):
+
+- **The condition is NOT met, and meeting it needs a person's hands** — a live production reading no agent can take,
+  a drill on a real deployment. Not an edit: write nothing, land with `changed.applied: []` and the exact steps in
+  `open`, each a sentence a person can act on without reading anything else. The fleet files that as the cut's
+  `Blocked · action` ticket. **Check first that it is not already met**: read the tickets and landings that carry
+  the reading (the cut's detail file, the issues the drive filed for it, their comments) before you call it open.
+- **The condition IS met, and the outcome contradicts what the answer assumed** — the readings were taken and came
+  back RED, the drill failed, the proof named no longer exists. Nobody is owed an action: the person's part is done,
+  and what is open is a **decision given the evidence**. Do not edit, do not write `open` steps, and **never ask the
+  person to do again what they did**. End `needs-decision` with ONE `questions` result (the fleet's written
+  channel), its question carrying `about: ["SL-NNN"]` and, in the prompt, **the evidence in plain words** — what
+  was measured, when, by whom, and what that result means for this cut — then two to four options with your
+  recommendation first and marked (fix and re-take; close on a written waiver citing the result; leave it open). The
+  answer is a card in the person's cockpit; when they pick, you resume in this same session and make the edit the pick
+  says.
+
+**The refusals, by sentinel, with no result file.** Step 2's refusal of an **all-terminal or finished** cut does *not* apply here: a finished cut that owes a proof is exactly what this mode is for, and the promise it was finished against stands untouched. A **withdrawn**, **abandoned** or **closed** cut (its program is) is refused as Step 2 refuses it, `failed` naming which. This mode adds: the block carries no
+`before.decision` → `failed` ("an apply was asked for with no recorded answer"); the answer contradicts the row as
+it now stands (the cut is already complete, or the proof it names does not exist) → `needs-decision`, the
+contradiction in one sentence, because a stale decision is a new question and not yours to settle.
+
+**Land it** as Step 2b lands a stub, with these differences. The branch is `agent/apply-<key, lowercased>`; the PR
+title carries the key and says it carries out a recorded decision, naming its date and who gave it; and the PR body
+quotes the answer verbatim and says in one sentence why it needs no human before it merges: **it makes the edit a
+person already chose, adds no customer-facing functionality, and touches only `Verified by` or `Disposition`.** Then
+the `landed` document, a slice's, with this mode's one `changed` key:
+
+```json
+{"kind": "landed", "landed": {"kind": "slice", "id": "SL-NNN", "href": "slice:SL-NNN", "pr": "<the merged PR's URL>", "files": ["<the register file edited>"], "summary": "<one sentence: the edit, and the answer it carries out>", "changed": {"applied": ["verifiedBy"]}, "open": []}}
+```
+
+`changed.applied` lists the cells written (`verifiedBy`, `disposition`); `[]` with a non-empty `open` is the
+"needs a person's hands" ending above.
+
 ### Step 2b: Stub mode — a refined cut with no PRD (no rounds)
 
 **Only when the block says `step: stub`.** The fleet asked for this because a driven program
-holds a cut that was refined and has no PRD of any status, and the next steps of the pipeline —
+holds a cut that was refined and has no CAPABILITY PRD — none at all, or only the program's composed
+proof — and the next steps of the pipeline —
 `prd:fill`, then `prd:blueprint` and `prd:plan` — need a stub to start from. **You ask no
 question, run no round, and write no cell of the slice, no register row and no bar.** The
 commitment was made when the cut was refined and the program started: this run decomposes what
@@ -180,9 +243,15 @@ is, and nothing else.
 **The refusals, by sentinel, with no result file** (*The headless contract* §9) — Step 2's all
 still apply, and these three are this mode's:
 
-- **The cut already has a member PRD, of any status** → nothing to write, and that is not a
+- **The cut already has a capability member PRD, of any status** → nothing to write, and that is not a
   failure: sentinel `success`, `pr: ""`, **no result file**, the summary saying which PRD is
-  there. The fleet records the settled landing itself. Never a second stub for a cut.
+  there. The fleet records the settled landing itself. Never a second stub for a cut. **The program's
+  own composed proof is NOT a capability member while it claims nothing** — its number is the program
+  row's `Verified by`, and a cut holding only that PRD (and no other) with an empty (or absent)
+  `implements:` is exactly the case this mode is for, so it is stubbed. **A composed proof whose
+  `implements:` names any commitment IS the cut's capability member**: it is
+  doing the cut's work as well as demonstrating the program, so nothing is written, as above. The fleet
+  does not ask for a stub over such a cut, so meeting one here means the corpus moved after the ask.
 - **The cut was never refined** (its row has no `Done when`, or its detail file has neither a
   `## Bar` nor any refine's text) → `needs-decision`: *"this cut has not been refined; refine
   it before a PRD is cut for it"* — a stub for an unrefined cut is a PRD invented from a
@@ -278,7 +347,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -480,6 +551,15 @@ looking for more of it.** Then:
 - **No prior questions in the payload** → round one. Read the repository, then ask.
 - **Prior questions AND their answers** → you were resumed. Consume them (§4) and continue
   where the round plan says you left off.
+- **A `## Decided already` block in your system prompt** → a person already answered earlier
+  rounds on this entity and the session that asked them is gone, so you are a cold start. The
+  block lists, oldest first, every answered question on the entity — the question text and the
+  answer verbatim, from this command and from earlier ones (a design inherits the fill's
+  answers). **Those are decided: never ask one again, never re-ask it reworded, and do not count
+  those rounds against your ceiling.** Plan from them as if you had asked them. Re-open one only
+  when the person's own answer says so ("revisit", "ask me again once ...", a send-back
+  instruction naming it); the fact that you would have chosen differently, or that the draft
+  has since moved, does not. Ask only what the block leaves open.
 - **Prior questions with no answers** → re-dispatched before the person got to it. **Do
   nothing at all and end the turn**: write the sentinel as `needs-decision` and stop.
   Re-asking is how a person receives the same round twice and learns to ignore both.

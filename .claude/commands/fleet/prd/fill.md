@@ -192,7 +192,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -283,7 +285,11 @@ ceiling. Everything here is authored **exactly as `create.md` says**, cited, nev
    `{ state: prd-drafted, at: <the timestamp, in the form the stub's own line uses>, by: fleet:prd:fill }` beneath the stub's
    own entry — never a second `stub` entry, never a second number; `slice:` as confirmed;
    `priority:` from the vision check, deliberately, never the fallback; `implements:` from
-   Step 1.4; `## Brief` kept above `## In Plain Words` as the record the interview started
+   Step 1.4; **`depends_on:` from the text — every PRD it builds on or is a branch point of, and
+   every bug fix it waits for as its tracker key (`ENG-NNNNN`), exactly as `create.md`'s
+   `depends_on:` rule says; `related:` for a PRD it mentions that is not a dependency; never a PRD that builds on this one (its own `depends_on:` names this PRD), which would be a cycle. The
+   driver reads that list and never the prose, and `prd-depends-on-prose` fails the commit
+   when they disagree;** `## Brief` kept above `## In Plain Words` as the record the interview started
    from; then the template's required sections in Phase 4's order — `## In Plain Words`
    first, the vision alignment, the source trace, the value justification, the resilience
    block, the scope, the requirements, the acceptance criteria each with a disposition tag
@@ -383,6 +389,15 @@ looking for more of it.** Then:
 - **No prior questions in the payload** → round one. Read the repository, then ask.
 - **Prior questions AND their answers** → you were resumed. Consume them (§4) and continue
   where the round plan says you left off.
+- **A `## Decided already` block in your system prompt** → a person already answered earlier
+  rounds on this entity and the session that asked them is gone, so you are a cold start. The
+  block lists, oldest first, every answered question on the entity — the question text and the
+  answer verbatim, from this command and from earlier ones (a design inherits the fill's
+  answers). **Those are decided: never ask one again, never re-ask it reworded, and do not count
+  those rounds against your ceiling.** Plan from them as if you had asked them. Re-open one only
+  when the person's own answer says so ("revisit", "ask me again once ...", a send-back
+  instruction naming it); the fact that you would have chosen differently, or that the draft
+  has since moved, does not. Ask only what the block leaves open.
 - **Prior questions with no answers** → re-dispatched before the person got to it. **Do
   nothing at all and end the turn**: write the sentinel as `needs-decision` and stop.
   Re-asking is how a person receives the same round twice and learns to ignore both.

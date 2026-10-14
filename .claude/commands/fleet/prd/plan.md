@@ -267,7 +267,7 @@ lists the ones this PRD touches by name; ownership is the slot's, never the plan
 - Wave 3: Tasks that depend on Wave 2 (integration, background tasks, SSE publishing)
 - Higher waves as needed
 
-**Migration numbering — never bake a literal.** A migration task names its file
+**Migration numbering — never bake a literal.** (In a repo whose migrations are timestamp-named, the plan names `migrations/<timestamp>_<slug>.sql` and the id is minted by the repo's migration-authoring tool at implement-time; the rest of this paragraph is for counted series.) A migration task names its file
 with a placeholder (`migrations/00NNN_<slug>.sql`), NOT a concrete number. The
 real number is the highest existing prefix + 1, computed by the implement step
 at implement-time (see [[`implementation.md`](../../../process/implementation.md)](../../../process/implementation.md) §3a) — by the time the
@@ -657,6 +657,7 @@ a gate that will also be waived on the day it matters ().
 The PRD's frontmatter `status:` is **the source of truth** (CLAUDE.md, "Status update on every command run"). Plans existing = the PRD is planned and ready for implementation. Update both, in the **same commit** as the plan files:
 
 1. In `knowledge/prds/NNNN` frontmatter, set `status: planned` and append a `status_history:` entry `- { state: planned, at: < timestamp>, by: plan }`.
+   - **Do this by running the script, not by editing from memory:** `python3 knowledge/scripts/prd_plan_flip.py knowledge/prds/NNNN`. It sets `status: planned` and stamps the `status_history` entry in one step, and it is a no-op when the PRD is already past `designed`. A plan PR whose `prd.md` still reads below `planned` **fails the commit** (`prd-plan-status` in the knowledge validators: PRD 0852's plan PR merged at `designed`, and its tracker issue sat in "Needs Plan" for hours) — so this step is not finished until the script has run, in every mode, headless or not.
    - Only advance if the current status is `designed`. If it is already `planned`/`implementing`/`verified`/`shipped`, leave it (re-running `/fleet:prd:plan` just refreshes the plan files). If it is `stub`/`prd-drafted`, stop — the PRD isn't designed yet.
 2. Nothing to stage for the roadmap — it is generated on demand and **not committed**.
 

@@ -238,7 +238,7 @@ which asks *"do these work together for a person?"*.
   write creates the collision that collapses the program's completion condition into this
   slice's. **The program side changes, never the slice's** — so name the proof on the slice,
   and clear or repoint the *program's* cell with
-  . Land both in the same PR; a branch that
+  [`/fleet:program:prove`](#). Land both in the same PR; a branch that
   fixes one half fails the commit.
 - **Prefer a member PRD** — one carrying `slice: SL-NNN`. A proof from outside the cut is
   legal and occasionally right, but it is a smell worth naming in the report: a slice proven
@@ -369,7 +369,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you

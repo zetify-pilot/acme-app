@@ -1,0 +1,418 @@
+{
+  "_comment": "The board vocabulary that ships with the command tier (ENG-17173). `fleet commands sync` renders it to `.claude/board-guidance.json`: every command rewritten to the repository's namespace and every entry naming a command the repository's set does not carry dropped, so the board names exactly the commands the repository has. Generated — edit the source in the package's `commandtree/`, never the rendered copy.",
+  "actionCommands": {
+    "program_prove": "/fleet:program:prove {id}",
+    "program_decompose": "/fleet:program:decompose {id}",
+    "program_deliver": "/fleet:program:deliver {id}",
+    "program_ship": "/fleet:program:ship {id}",
+    "program_bar_author": "/fleet:program:prove {id}",
+    "slice_create": "/fleet:slice:create {id}",
+    "slice_verified_by": "/fleet:slice:edit {id} --verified-by",
+    "slice_depends_on": "/fleet:slice:edit {id} --depends-on",
+    "slice_bar_author": "/fleet:slice:edit {id} --bar",
+    "prd_create": "/fleet:prd:create {id}",
+    "prd_create_in_slice": "/fleet:prd:create {id}",
+    "requirement_startable": "/fleet:route {id}",
+    "capability_unshipped": "/fleet:route {id}"
+  },
+  "nextCommand": {
+    "stub": "/fleet:prd:create {id}",
+    "prd-drafted": "/fleet:prd:design {id}",
+    "designed": "/fleet:prd:plan {id}",
+    "planned": "/fleet:prd:implement {id}"
+  },
+  "shape": {
+    "program": {
+      "fleet": "/fleet:program:shape {id}",
+      "terminal": "/fleet:program:decompose {id}"
+    },
+    "slice": {
+      "fleet": "/fleet:slice:refine {id}",
+      "terminal": "/fleet:slice:edit {id}"
+    },
+    "prd": {
+      "fleet": "/fleet:prd:fill {id}",
+      "terminal": "/fleet:prd:create {id}"
+    }
+  },
+  "unbuilt": [],
+  "baselines": [],
+  "howLabel": {
+    "board": "a page hands it to you",
+    "typed": "you type it to start a session",
+    "fleet": "the fleet dispatches it"
+  },
+  "catalogueScan": {
+    "dir": ".claude/commands/fleet",
+    "prefix": "/fleet:",
+    "sep": ":"
+  },
+  "catalogue": [
+    [
+      "/fleet:ask",
+      "—",
+      "A question, research, or you do not know yet whether it is work. Loads nothing heavy and changes nothing.",
+      [
+        "typed"
+      ]
+    ],
+    [
+      "/fleet:intake",
+      "—",
+      "The front door for anything a person files: a short interview that turns it into one decision-ready write-up.",
+      [
+        "typed",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:route",
+      "—",
+      "Anything new that might be built. It classifies it — program, slice, PRD, task, bug or idea — and files it.",
+      [
+        "typed",
+        "board",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:check",
+      "—",
+      "The gate every filed issue passes through before the fleet may build it.",
+      [
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:verify",
+      "—",
+      "The gate every fix passes on its way out: proves the issue is closed at the pull request's head, then merges or returns it.",
+      [
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:push",
+      "—",
+      "Commit and open a pull request, or ship it on green checks.",
+      [
+        "typed"
+      ]
+    ],
+    [
+      "/fleet:idea:create",
+      "—",
+      "Park something early, without committing to it.",
+      [
+        "typed"
+      ]
+    ],
+    [
+      "/fleet:bug:create",
+      "—",
+      "File a bug with what was seen and how to reproduce it.",
+      [
+        "typed"
+      ]
+    ],
+    [
+      "/fleet:bug:reproduce",
+      "—",
+      "Prove a filed bug with a failing test.",
+      [
+        "typed",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:bug:fix",
+      "—",
+      "Fix a bug test-first through to a green pull request.",
+      [
+        "typed",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:task:create",
+      "—",
+      "File a small piece of work that needs no PRD.",
+      [
+        "typed"
+      ]
+    ],
+    [
+      "/fleet:task:implement",
+      "—",
+      "Build a small task through to a green pull request.",
+      [
+        "typed",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:program:create",
+      "program",
+      "A result someone gets has no home yet. Adds a row to the program register.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:decompose",
+      "program",
+      "Work backwards from a program: what has to exist for this to be true? Produces the gaps and their build order.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:shape",
+      "program",
+      "Shape a program that is only a row, from its page, through the fleet's question channel. Never typed.",
+      [
+        "fleet",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:demonstrate",
+      "program",
+      "Name a shaped program's proof, or honestly none, through the fleet's question channel. Never typed.",
+      [
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:program:deliver",
+      "program",
+      "One delivery cycle on a program already in execution: releases what is ready, chases stalls, and asks you about anything blocking.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:prove",
+      "program",
+      "Say which proof counts — the run that shows the whole thread works, not one lane of it.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:program:ship",
+      "program",
+      "Close a program whose proof has held.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:slice:create",
+      "slice",
+      "Cut a planning slice inside a program.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:slice:edit",
+      "slice",
+      "Change what a cut waits on, which run proves it, or the sentence that says when it is done.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:slice:refine",
+      "slice",
+      "Refine a slice cut from a brief, from its page, through the fleet's question channel. Never typed.",
+      [
+        "fleet",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:create",
+      "prd",
+      "Author a PRD inside a slice. This is where a promise turns into work.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:fill",
+      "prd",
+      "Fill a PRD stub from its page, through the fleet's question channel, and land it drafted. Never typed.",
+      [
+        "fleet",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:blueprint",
+      "prd",
+      "Design a drafted PRD on the fleet, just in time.",
+      [
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:prd:design",
+      "prd",
+      "Technical and experience design for a drafted PRD.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:plan",
+      "prd",
+      "Implementation plans for a designed PRD.",
+      [
+        "typed",
+        "board"
+      ]
+    ],
+    [
+      "/fleet:prd:implement",
+      "prd",
+      "Build a planned PRD through to a green pull request.",
+      [
+        "typed",
+        "board",
+        "fleet"
+      ]
+    ],
+    [
+      "/fleet:prd:verify",
+      "prd",
+      "Audit what shipped against what the PRD promised.",
+      [
+        "fleet"
+      ]
+    ]
+  ],
+  "cmds": {
+    "next": [
+      [
+        "/fleet:route",
+        "Anything new — a request, an idea, a complaint. It works out what it is and files it."
+      ],
+      [
+        "/fleet:idea:create",
+        "Park something early, without committing to it."
+      ]
+    ],
+    "board": [
+      [
+        "/fleet:route",
+        "Anything new — a request, an idea, a complaint. It works out what it is and files it."
+      ],
+      [
+        "/fleet:program:create",
+        "Add a program. Use it when a result someone gets has no home yet."
+      ],
+      [
+        "/fleet:ask",
+        "A question or a piece of research. Loads nothing heavy, changes nothing."
+      ]
+    ],
+    "program": [
+      [
+        "/fleet:program:decompose",
+        "Work backwards from the promise: what has to exist for this to be true?"
+      ],
+      [
+        "/fleet:program:deliver",
+        "One delivery cycle: releases the work that is ready, chases what stalled, and asks you about anything blocking."
+      ],
+      [
+        "/fleet:program:prove",
+        "Say which proof counts. It writes nothing when no honest proof exists yet."
+      ],
+      [
+        "/fleet:program:ship",
+        "Close it, once its proof has held."
+      ],
+      [
+        "/fleet:slice:create",
+        "Cut a new slice inside this program."
+      ]
+    ],
+    "slice": [
+      [
+        "/fleet:prd:create",
+        "Start a PRD in this slice."
+      ],
+      [
+        "/fleet:slice:edit",
+        "Change what this cut waits on, which run proves it, or when it is done."
+      ],
+      [
+        "/fleet:slice:create",
+        "Cut a sibling slice next to this one."
+      ]
+    ],
+    "prd": [
+      [
+        "/fleet:prd:design",
+        "Technical and experience design for a drafted PRD."
+      ],
+      [
+        "/fleet:prd:plan",
+        "Implementation plans for a designed PRD."
+      ],
+      [
+        "/fleet:prd:implement",
+        "Build it through to a green pull request."
+      ]
+    ],
+    "health": [
+      [
+        "/fleet:program:prove",
+        "Say which proof counts, for a program that reads 'no proof named'."
+      ],
+      [
+        "/fleet:slice:edit",
+        "Change what a cut waits on, which run proves it, or when it is done."
+      ],
+      [
+        "/fleet:program:decompose",
+        "Cut the slices a program has none of."
+      ]
+    ]
+  },
+  "pipeLabel": "A PRD's path",
+  "pipe": [
+    [
+      "/fleet:prd:create",
+      "write it"
+    ],
+    [
+      "/fleet:prd:design",
+      "design it"
+    ],
+    [
+      "/fleet:prd:plan",
+      "plan it"
+    ],
+    [
+      "/fleet:prd:implement",
+      "build it"
+    ],
+    [
+      "/fleet:prd:verify",
+      "prove it"
+    ]
+  ]
+}

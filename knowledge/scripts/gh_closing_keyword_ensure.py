@@ -38,7 +38,10 @@ from typing import Any
 
 # The same keyword set push.md step 5.5 greps for — a GitHub-recognized closing keyword
 # followed by the key. `Refs`/`Relates to`/`See` are links, never closes.
-_CLOSING_RE_TMPL = r"\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[ \t]+{key}\b"
+# `(?<![/:])` refuses a match whose verb is a slash-command segment (`bug:fix KEY`,
+# `/…:bug:fix KEY`): `\b` alone treats `:`/`/` as a boundary, so those false-positive
+# and the ensure no-ops instead of appending `Closes KEY`.
+_CLOSING_RE_TMPL = r"(?<![/:])\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[ \t]+{key}\b"
 
 
 def has_closing_keyword(body: str, key: str) -> bool:

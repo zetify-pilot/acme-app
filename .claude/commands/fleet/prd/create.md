@@ -405,7 +405,9 @@ them, and only that. So, every time you ask:
    is a defect in the question, not a preference — re-ask in full, plainer, and hold that
    register for the rest of the run.
 
-6. **The person may not be the one who knows — every question can be answered *"I can't
+6. **A mockup, design or any visual reaches the person ONE way: the fleet's `ask` tool with the mockup attached** (`upload_link` the folder, then `attachments: {bundleId, entry}`). Their browser is on their own machine, not on the box you run on: **never** tell them to open a file path, run `python3 -m http.server` or visit `localhost` / `127.0.0.1`, and never carry a mockup question in the built-in `AskUserQuestion`, which has no attachment. The tool answers with a viewer link; put that link whole in what you say. One authority: `.claude/process/interview.md` → *A mockup reaches a person ONE way*.
+
+7. **The person may not be the one who knows — every question can be answered *"I can't
    answer this"*, and you must plan for that.** The question card carries that choice itself
    (*Can't answer — carry on*); you never add it as an option, and you never invent an answer
    in its place. When it comes back: **carry on with an explicit `Assumption: <what you
@@ -585,7 +587,7 @@ Then, still at the top:
 - **Phase:** <which product phase>
 - **Customer value:** <what gets better for the customer>
 - **Differentiation:** <which product advantage this strengthens>
-- **Depends on:** <every PRD whose code must *execute* on this PRD's runtime path — not just the surface it calls — or "None">
+- **Depends on:** <every PRD whose code must *execute* on this PRD's runtime path — not just the surface it calls — and every bug fix that must merge first, by its tracker key; each is also an entry in the frontmatter `depends_on:`. Or "None">
 ```
 
 At the bottom of the PRD, include:
@@ -684,7 +686,8 @@ target: <2026-Qn | YYYY-MM | YYYY-MM-DD>   # optional and rare; only for a real 
 date: YYYY-MM-DD
 author: <name>
 <the roadmap-placement keys `slot:planning-model` prescribes for a plan here — a phase, a wave, a differentiator, whatever this repo's roadmap is cut by>
-depends_on: [<PRD-numbers> or empty]
+depends_on: [<every PRD the text builds on, and every bug fix it waits for as its tracker key (ENG-NNNNN) — or empty>]   # the fleet's driver reads THIS and nothing in the prose; see the rule below
+related: [<PRDs the text mentions that are NOT dependencies>]   # omit if none
 implements: [<requirement IDs from Phase 0.6, e.g. , RUN-090>]   # omit if none
 source_ideas:
   - path: <path>
@@ -694,6 +697,8 @@ labels: [<the label set `slot:planning-model` prescribes>]
 ```
 
 The `status:` field is the single source of truth for PRD lifecycle state — **and it is the only authored status in the model**, which is why every tier above it is computed from PRDs like this one. Set `status: prd-drafted` when this PRD ships. **`slice:` is required and must resolve** to an `SL-NNN` row fragment under `knowledge/slices/rows/` (from Phase 0.5) — it's the edge that makes the PRD roll up to a slice and, transitively, to the program that slice's row names; the pre-commit validator rejects a dangling `slice:`. **`priority:` is required — ALWAYS set it** (`urgent | high | medium | low`), chosen from the PRD's real urgency: how soon the customer needs it, whether it blocks other committed work, severity of the gap it closes. Unlike `bug`/`task` (which call Fleet's `file_issue` directly), a PRD's tracker issue is created by the `prd-projection` pass of the fleet's `corpus-sync` loop, which projects this `priority:` onto the issue at create time; a PRD that omits it falls back to Medium so no issue is ever left without a priority — but set it deliberately, don't lean on the fallback. `target:` is optional and rare at the PRD level — **nothing between the PRD and the program carries a date at all**, and a program carries one only where a real external commitment exists; set it here only when this PRD is itself the thing someone outside is holding us to. See [``](#) for the full schema, and [``](#) for the state machine.
+
+**`depends_on:` is the only place the fleet's driver reads what a PRD waits for — it never reads the prose.** The driver designs, plans and builds a PRD once every entry has shipped, asks the person when one is planned but not built, and holds the PRD with a plain sentence while a listed bug fix is open. So the list is written from the text, not before it: **every PRD the text names as a dependency, prerequisite, "builds on", "branch point", "composes with" or "depends on" — including the "Depends on:" bullet in Vision Alignment and a "Branch points, owned elsewhere" line — is an entry.** **A bug fix that must merge first is an entry too, as its tracker key** (`depends_on: [0845]`) — a tracker issue is never left in prose only. **Never list a PRD that builds on this one** (one whose own `depends_on:` names this PRD, directly or through others): it composes with you, it does not precede you, and listing it is a cycle `tracking-metadata` rejects; the check skips it. A PRD the text mentions that is *not* a dependency is said so: the frontmatter `related: [0845]`, an inline `(not a dependency: <the reason>)`, or a `- **Related PRDs:**` line. `prd-depends-on-prose` (the planning check) fails a drafted, designed or planned PRD whose text and `depends_on:` disagree; the fix is a line in the frontmatter, not a rewrite.
 
 **`area:` is the authored the tracker placement, and it is optional only because a default exists.** A PRD's tracker issue is filed in the tracker **Project of its feature area** — the durable container that covers 100% of the product — and placement is *authored* rather than derived because `component → feature area` is neither total (23 of 56 components map to no area) nor unique (`connector-runtime` maps to 13). The `prd-projection` pass **defaults** it to the single `knowledge/features/<area>.md` whose capability ledger cites this PRD in `Ships in`; when that is ambiguous or absent the issue is filed **with no project at all** and the projection reports it as a warning. So: if you are also adding this PRD to a feature map's ledger, you may leave `area:` off; otherwise **set it**, or the issue lands in no container and no board filter will find it. The value is the map's `area:` slug (e.g. `retrieval`), not its title.
 
