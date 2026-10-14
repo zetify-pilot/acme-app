@@ -1,7 +1,9 @@
 name: late-gate
-# A second check that reports only when dispatched by hand on a branch, with the outcome chosen.
+# A second check that reports only when a person asks for it, with the outcome chosen.
 # Acceptance tests use it to make a required check go red on a PR AFTER Fleet armed its merge
 # (the "verify armed while CI was still running, CI then failed" case). Not required by default.
+# On a pull request: add the label `late-gate:green` or `late-gate:red`. (A workflow_dispatch run
+# is not part of the PR's check rollup, so it cannot stand in for a PR check.)
 on:
   workflow_dispatch:
     inputs:
@@ -9,11 +11,14 @@ on:
         description: "green or red"
         required: true
         default: green
+  pull_request:
+    types: [labeled]
 jobs:
   late-gate:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.label.name, 'late-gate:')
     runs-on: [self-hosted, acme-ci]
     timeout-minutes: 5
     steps:
-      - run: '[ "$OUTCOME" = green ] || { echo "late-gate asked to report red"; exit 1; }'
+      - run: '[ "$OUTCOME" = green ] || [ "$OUTCOME" = late-gate:green ] || { echo "late-gate asked to report red ($OUTCOME)"; exit 1; }'
         env:
-          OUTCOME: ${{ inputs.outcome }}
+          OUTCOME: ${{ github.event_name == 'workflow_dispatch' && inputs.outcome || github.event.label.name }}
