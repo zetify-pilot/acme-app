@@ -1,5 +1,6 @@
 [
 ".claude/board-guidance.json",
+".claude/commands/fleet/ask.md",
 ".claude/commands/fleet/bug/create.md",
 ".claude/commands/fleet/bug/fix.md",
 ".claude/commands/fleet/bug/reproduce.md",
@@ -50,6 +51,7 @@
 "knowledge/scripts/_repo.py",
 "knowledge/scripts/component_of.py",
 "knowledge/scripts/fleet.py",
+"knowledge/scripts/gen_decision_ledger.py",
 "knowledge/scripts/gen_program_plan.py",
 "knowledge/scripts/gen_requirement_status.py",
 "knowledge/scripts/gen_roadmap.py",

@@ -49,6 +49,14 @@
   },
   "catalogue": [
     [
+      "/fleet:ask",
+      "—",
+      "A question, research, or you do not know yet whether it is work. Loads nothing heavy and changes nothing.",
+      [
+        "typed"
+      ]
+    ],
+    [
       "/fleet:intake",
       "—",
       "The front door for anything a person files: a short interview that turns it into one decision-ready write-up.",
@@ -313,6 +321,10 @@
       [
         "/fleet:program:create",
         "Add a program. Use it when a result someone gets has no home yet."
+      ],
+      [
+        "/fleet:ask",
+        "A question or a piece of research. Loads nothing heavy, changes nothing."
       ]
     ],
     "program": [

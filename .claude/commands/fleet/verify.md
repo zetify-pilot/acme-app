@@ -502,8 +502,9 @@ them using a different emoji for the same `INCOMPLETE` verdict.
 **Five steps, in exactly this order:**
 
 1. **`record_verdict(repo, pr_number, head_sha, verdict: verified, ledger, dispatch_token)`.**
-   The authority is Fleet's row. Pass `$FLEET_VERIFY_DISPATCH_TOKEN` (the mission names
-   the variable). A reconcile push after this verdict needs no new verdict — the gate
+   The authority is Fleet's row. Pass the VALUE of `$FLEET_VERIFY_DISPATCH_TOKEN` (the
+   mission names the variable): a tool argument is never expanded, so the name itself is
+   refused. A refusal's `field` names what to correct. A reconcile push after this verdict needs no new verdict — the gate
    matches by the pull request's own diff.
 2. **`comment` kind `verdict`**, the readable note — never a hand-typed `dispatch token`
    line. Put the token in `data.dispatchToken` only:
@@ -592,7 +593,9 @@ them using a different emoji for the same `INCOMPLETE` verdict.
      done-sentinel ends `merge-pending` with **`verifiedSha` set to the commit you verified**.
      Never re-run a workflow here. When `$FLEET_VERIFY_GATE_REQUIRED` is `false` (the lease read
      the gate as not required), take the ungated path the lane without a required gate takes
-     today: merge on your own verdict, and the control plane posts the check afterwards.
+     today: merge on your own verdict, and the control plane posts the check afterwards — from
+     your done-sentinel, so end it `success` with **`verifiedSha` set to the commit you verified**
+     (a `success` that names no commit leaves the check concluded as merged-unverified).
 
      ```bash
      python3 knowledge/scripts/gh_automerge_arm.py <pr> --require-green
