@@ -30,3 +30,7 @@ uvicorn app.main:app --reload
 - `app/main.py` — the FastAPI application and its task endpoints
 - `tests/` — the pytest suite CI runs
 - `knowledge/` — the product knowledge (programs, PRDs) the fleet works from
+
+## Contributing
+
+Run `pytest` and make sure it passes before you open a pull request.
