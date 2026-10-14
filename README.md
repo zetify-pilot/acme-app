@@ -30,6 +30,7 @@ uvicorn app.main:app --reload
 - `app/main.py` — the FastAPI application and its task endpoints
 - `tests/` — the pytest suite CI runs
 - `knowledge/` — the product knowledge (programs, PRDs) the fleet works from
+- `.github/workflows/ci.yml` — the CI workflow that runs the test suite
 
 ## Contributing
 
