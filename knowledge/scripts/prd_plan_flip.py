@@ -14,11 +14,13 @@ from __future__ import annotations
 
 import re
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _repo  # noqa: E402
+
+UTC = timezone.utc
 
 _repo.fleet_knowledge()
 

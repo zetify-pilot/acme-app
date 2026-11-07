@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Ship-gate for `prd:verify`: may this run bless the carrier PR as the PRD's ship?
 
-. `prd:verify 0564` concluded "verified & merged" and let its Linear
+. `prd:verify 0564` concluded "verified & merged" and let its tracker
 issue reach `Done` on a merge that had announced, machine-readably, that it was NOT that
 PRD's implementation: PR #9221's body carries `NOT-IMPLEMENTING-PRD=0564:` — the exact
 line `knowledge/scripts/validate_prd_verified_before_merge.py` parses and honours on the merge
@@ -47,17 +47,10 @@ identifies every non-ship by checks 1–3, disclaimer optional on the refusal pa
  and kin) stays human-facing sequencing. Decision record:
 `knowledge/decisions/2026-08-30-two-pr-split-ship-is-the-status-flip-not-a-declared-terminal-pr.md`.
 
-PRD 0582's ship-time check (design D14's closing rule — "**0582 does not flip to
-`shipped` while `oracle_diff.json` reads `unproven`**"; AC-4's "*(Leg A + a ship-time
-check.)*" element, which verify refutation found existing nowhere as code): on
-the OPEN-candidate path — the one whose message says the run may flip the status and ship
-— a `0582` verify run re-runs the merge gate's oracle-capture predicate
-(`_vpv.pg13_oracle_capture_blocker_working_tree`, judging this checkout's working tree)
-BEFORE blessing. A non-None blocker refuses with the same fixed terminal as a merged
-non-ship. Merged-candidate grading is NOT changed — the merge gate
-(knowledge/scripts/validate_prd_verified_before_merge.py) polices the merge itself. There is
-deliberately NO disclaimer-shaped escape on either side: D14's whole point is that
-`unproven` must never read as passable under pressure.
+
+
+A project's own ship-time checks (`SHIP_TIME_CHECKS` in the merge gate) run on the
+OPEN-candidate path the same way; the tier as a customer receives it registers none.
 
 On refusal the verify run's terminal is fixed, not negotiable: no `verified & merged`
 conclusion, no success sentinel, no Done — the issue stays (or lands) at `Blocked ·
@@ -69,8 +62,21 @@ Imported, not run: `prd:verify` executes this before any success terminal
 (`python3 knowledge/scripts/validate_prd_verify_ship.py <NNNN> <KEY> --pr <n>`). Stdlib-only, like
 the other validate_* scripts.
 
+**A stamp owed is not a refusal (exit 3).** The implement PR can merge without the stamp for a
+reason that has nothing to do with whether it is the PRD's work: a person clicked merge before
+the verifier could stamp `shipped` onto the branch (measured on a customer install: the PR
+merged at `implementing`, its next verify re-proved every criterion PASS, and the old terminal
+parked a person to flip one line). That shape is told apart from the three non-ships above by the
+frontmatter itself: `prd:implement` moves the PRD to `implementing` as its first act, so a merge
+that reads `implementing` at the merge commit, with no disclaimer, IS the implement PR. The work is
+on `main`, and only the stamp is missing. The run opens a ship-stamp carrier PR from `main` whose
+only change is the PRD's `prd.md`, and the next verify audits that head and stamps it through the
+normal ship. Nothing is blessed on the merged PR itself, so this blesses no unaudited code. A merge
+at `planned` (an apparatus half, never the implement PR) or one that disclaims the PRD stays exit 1.
+
 Exit 0 = the run may bless. Exit 1 = refused, with the terminal contract printed. Exit 2
-= bad invocation.
+= bad invocation. Exit 3 = stamp owed: the implement PR merged without the PRD's ship stamp, so
+the run opens a ship-stamp carrier instead of parking a person.
 """
 
 from __future__ import annotations
@@ -90,6 +96,13 @@ HERE = Path(__file__).resolve().parent
 USAGE = "validate_prd_verify_ship.py <prd-num> <issue-key> [--pr <number>] [--repo <owner/name>]"
 
 PRD_NUM_RE = re.compile(r"^\d{4}$")
+
+#: The exit code for a stamp owed (see the docstring): the implement PR merged without the ship stamp.
+STAMP_OWED = 3
+
+#: The frontmatter status a merge must read to be the implement PR that dropped its stamp. Only
+#: `prd:implement` writes it, as its first act; `planned` at a merge is an apparatus half.
+STAMP_OWED_STATUSES = frozenset({"implementing"})
 
 # One source of truth for the disclaimer shape and the frontmatter `status:` parse: the
 # merge gate's own constants, loaded by path (scripts/ is not a package). If the merge
@@ -235,6 +248,28 @@ def _grade_merged_candidate(
             ],
         )
 
+    # status != shipped. The implement PR that merged before its stamp: a stamp owed, not a park.
+    if disclaimed_reason is None and status in STAMP_OWED_STATUSES:
+        return Verdict(
+            STAMP_OWED,
+            [
+                f"{head} merged at {sha[:12]} without PRD {prd_num}'s ship stamp: {path} reads "
+                f"`status: {status}` at the merge commit (`{parent_status or 'absent'}` at its parent), "
+                "and the body does not disclaim the PRD. This was the implement PR, merged before the "
+                "stamp could ride it. The work is on `main`; only the stamp is owed.",
+                "",
+                "WHAT THIS MEANS FOR THE VERIFY RUN (stamp owed — never park a person for it):",
+                f'  1. Do NOT conclude "verified & merged" on {head}, and do NOT stamp anything onto it.',
+                "  2. Open ONE ship-stamp carrier PR from `origin/main` (where the merged work already is) if none "
+                f"is open: issue key `{issue_key}` in its branch, title and body; an empty commit is its whole "
+                f"content now. Its only change, once stamped, is {path} — never product code. Do NOT arm "
+                "auto-merge on it: an armed empty carrier merges before the stamp.",
+                "  3. Write the done-sentinel with status `partial` naming the carrier PR's URL, and stop. The "
+                "next dispatch binds its token to that carrier, audits the carrier's head, and lands "
+                "`verified` and `shipped` through the normal ship.",
+            ],
+        )
+
     # status != shipped: the frontmatter did not ship — the incident shape.
     lines = [
         f"{head} merged at {sha[:12]} but it is NOT PRD {prd_num}'s ship:",
@@ -269,15 +304,21 @@ def evaluate(
     *,
     list_paths_at: Callable[[str], list[str]],
     blob_at: Callable[[str, str], str | None],
-    pg13_capture_blocker: Callable[[], str | None],
+    ship_time_checks: dict[str, Callable[[], str | None]] | None = None,
 ) -> Verdict:
     """0 iff at least one carrier candidate proves the run may bless the merge as the ship.
 
-    `pg13_capture_blocker` is PRD 0582's ship-time predicate (design D14): a
-    zero-arg callable returning None when the oracle capture has landed, else the named
-    refusal reason. It gates ONLY the OPEN-candidate path below — the decision point
-    whose message says the run may flip the status and ship; merged-candidate grading is
-    unchanged, because the merge gate polices the merge itself."""
+    `ship_time_checks` maps a PRD number to a zero-arg predicate returning None when that
+    PRD may ship, else the named refusal reason — by default the merge gate's own
+    `SHIP_TIME_CHECKS`, which the tier as shipped leaves empty. It gates ONLY the
+    OPEN-candidate path below — the decision point whose message says the run may flip the
+    status and ship; merged-candidate grading is unchanged, because the merge gate polices
+    the merge itself."""
+    checks = (
+        dict(ship_time_checks)
+        if ship_time_checks is not None
+        else {num: pair[0] for num, pair in _vpv.SHIP_TIME_CHECKS.items()}
+    )
     if not candidates:
         return Verdict(
             1,
@@ -291,17 +332,16 @@ def evaluate(
     open_candidates = [c for c in candidates if str(c.get("state", "")).upper() == "OPEN"]
     if open_candidates:
         numbers = ", ".join(f"#{c.get('number', '?')}" for c in open_candidates)
-        # PRD 0582's ship-time check: an OPEN carrier is normally blessed straight
-        # through, but 0582's flip to `shipped` must not be blessable while the oracle
-        # capture is unproven — the exact state D14 refuses to let read as shippable.
-        if prd_num == _vpv.PG13_COMPOSED_PROOF_PRD:
-            blocker = pg13_capture_blocker()
+        # A registered ship-time check: an OPEN carrier is normally blessed straight
+        # through, but a PRD whose own check refuses must not be blessable as shipped.
+        ship_time_check = checks.get(prd_num)
+        if ship_time_check is not None:
+            blocker = ship_time_check()
             if blocker is not None:
                 return Verdict(
                     1,
                     [
-                        f"Carrier PR {numbers} for {issue_key} is OPEN, but PRD {prd_num}'s ship-time check "
-                        "refuses — the oracle capture has not landed:",
+                        f"Carrier PR {numbers} for {issue_key} is OPEN, but PRD {prd_num}'s ship-time check refuses:",
                         f"  {blocker}",
                         "",
                         "WHAT THIS MEANS FOR THE VERIFY RUN (the terminal is fixed, not negotiable):",
@@ -309,9 +349,8 @@ def evaluate(
                         "The issue must NOT reach Done.",
                         "  2. Do NOT flip the PRD's frontmatter status — no `shipped` (and no `verified`) stamp on "
                         "this terminal; the flip is exactly what is refused.",
-                        "  3. Leave the issue parked at `Blocked · action` (design B10), naming the operator oracle "
-                        "re-capture (internal/scenarios/installer/testdata/metro_crab_parity/README.md) as the "
-                        "remaining half.",
+                        "  3. Leave the issue parked at `Blocked · action`, naming what the refusal above "
+                        "says is missing as the remaining half.",
                         "  4. Write the done-sentinel with status `needs-action`, quoting this gate's output verbatim "
                         "as the reason.",
                     ],
@@ -342,6 +381,10 @@ def evaluate(
     ]
     for _c, v in verdicts:
         if v.code == 0:
+            return v
+    # A stamp owed outranks every refusal: the implement PR merged, whatever else beside it did not.
+    for _c, v in verdicts:
+        if v.code == STAMP_OWED:
             return v
 
     # Every merged candidate failed. Refuse with the most informative block: a
@@ -492,9 +535,8 @@ def main(argv: list[str]) -> int:
         candidates,
         list_paths_at=list_paths_at,
         blob_at=blob_at,
-        # PRD 0582's ship-time check (design D14): the same working-tree
-        # predicate the merge gate runs, judged at this session's decision point.
-        pg13_capture_blocker=_vpv.pg13_oracle_capture_blocker_working_tree,
+        # The merge gate's registered ship-time checks, judged against this checkout's
+        # working tree at this session's decision point (`evaluate`'s default).
     )
     print(v.message)
     return v.code

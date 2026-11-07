@@ -1,0 +1,40 @@
+# PostgreSQL as a backing service for the dev loop, run in a container. A stack's own
+# integration tests bring their own database (Testcontainers); this is the one `make dev` uses.
+id = "postgres"
+title = "PostgreSQL"
+rooted = false
+
+[[detect]]
+files = ["migrations/*.sql", "Migrations/*.cs"]
+[[detect]]
+files = ["*.csproj"]
+contains = "Npgsql"
+
+[vars.CONTAINER]
+default = "podman"
+[vars.PG_CONTAINER]
+default = "fleet-postgres"
+[vars.PG_IMAGE]
+default = "docker.io/library/postgres:17"
+[vars.PG_PORT]
+default = "5432"
+# A local dev password, passed to the container through the environment (never on argv).
+[vars.POSTGRES_PASSWORD]
+default = "postgres"
+export = true
+
+[targets]
+dev-services = "$(CONTAINER) start $(PG_CONTAINER) 2>/dev/null || $(CONTAINER) run -d --name $(PG_CONTAINER) -e POSTGRES_PASSWORD -p $(PG_PORT):5432 $(PG_IMAGE)"
+dev-stop = "$(CONTAINER) rm -f $(PG_CONTAINER)"
+# `make dev` starts the database detached, alongside the other stacks' dev loops.
+dev = "$(CONTAINER) start $(PG_CONTAINER) 2>/dev/null || $(CONTAINER) run -d --name $(PG_CONTAINER) -e POSTGRES_PASSWORD -p $(PG_PORT):5432 $(PG_IMAGE)"
+
+[[toolchain]]
+tool = "make"
+name = "make"
+install = "apt:make"
+
+[[toolchain]]
+tool = "podman"
+name = "Podman"
+install = "apt:podman"

@@ -28,8 +28,9 @@ target repo's own policy — this script runs from a platform-repo checkout
 against whatever repo `GH_REPO`/cwd point at, and the hardcoded platform list
 refused on every non-platform lane whose head was already green (live on
 a secondary lane's PR, 2026-09-08). `resolve_required_contexts()` reads the repo's
-branch protection (and any enforced repo-level rulesets); the static
-`PROTECTION_REQUIRED_CONTEXTS` below is only the fail-closed offline fallback.
+branch protection (and any enforced branch-target rulesets). When that policy cannot be
+determined it names no checks and the head is judged on its own check runs; no static list
+of another repository's checks is ever substituted.
 
 MERGE QUEUE (2026-09-28 rehearsal). The arm is `gh pr merge <pr> --auto --squash` — never
 `--delete-branch`, which `gh` refuses outright on a queued branch — and it is CONFIRMED by
@@ -169,6 +170,30 @@ def blocking_reasons(
     return reasons
 
 
+def every_run_reasons(check_runs: list[dict[str, Any]], ignore: str | None = None) -> list[str]:
+    """One reason per check on the head that is still running or did not pass.
+
+    The verdict when the required set is undetermined. The latest run per name decides
+    (a re-run supersedes an older one); a name with only in-flight runs is a block.
+    `ignore` is the verify gate's own check, pending by design while the arm is made.
+    """
+    latest: dict[str, dict[str, Any]] = {}
+    for run in check_runs:
+        name = run.get("name")
+        if not isinstance(name, str) or not name or name == ignore:
+            continue
+        prev = latest.get(name)
+        if prev is None or run.get("id", 0) >= prev.get("id", 0):
+            latest[name] = run
+    reasons: list[str] = []
+    for name, run in latest.items():
+        if run.get("status") != "completed" or run.get("conclusion") is None:
+            reasons.append(f"{name}: not completed (status={run.get('status')!r})")
+        elif run.get("conclusion") not in PASSING_CONCLUSIONS:
+            reasons.append(f"{name}: conclusion={run.get('conclusion')!r} (status={run.get('status')!r})")
+    return reasons
+
+
 def _http_status(stderr: str) -> int | None:
     m = re.search(r"HTTP (\d{3})", stderr or "")
     return int(m.group(1)) if m else None
@@ -195,30 +220,26 @@ def _contexts_from_protection_body(body: Any) -> list[str] | None:
     return list(dict.fromkeys(contexts))
 
 
-def _static_fallback(reason: str) -> tuple[list[str], str]:
-    """The fail-closed degradation: unknown live policy → the static platform list plus the gate.
+#: The `source` of a resolution that could not name the required checks.
+UNDETERMINED = "undetermined"
 
-    Refusing on a list that is at worst the platform's is safe; arming on an
-    under-read is the race with a blindfold. The warning is loud so a
-    degraded gate is never mistaken for a live one. **The gate's own context
-    comes from `$FLEET_VERIFY_GATE`, not a literal** (PRD 0745): on a
-    check-gated repository it is the name the control plane posts, and it is
-    the one context `--require-green` must NOT demand (the arm is deliberately
-    made while it is pending). A workflow gate names a file, not a context, so
-    nothing is added for it — the live read carries the workflow's own job name.
+
+def _undetermined(reason: str) -> tuple[list[str], str]:
+    """The live required set could not be determined: say so, name no checks.
+
+    There is no static list to fall back on: a list written for one repository is an
+    unrelated list on every other, and demanding it refused every arm on a repository
+    that never had those checks. The caller (`require_green_block_reasons`) judges the
+    head on its own check runs instead (all completed, none failed), so the gate stays
+    closed on a red or running head and opens on a green one. The notice is loud so an
+    undetermined set is never mistaken for a live one.
     """
-    fallback = list(PROTECTION_REQUIRED_CONTEXTS)
-    gate = _gate_from_env()
-    if gate is not None and gate[0] == "check" and gate[1] not in fallback:
-        fallback.append(gate[1])
     print(
-        f"[gh_automerge_arm] WARNING: live required-context read unavailable ({reason}) — "
-        f"failing CLOSED to the static platform fallback {fallback} "
-        "(ENG-10051). On a non-platform repo this may refuse although the head is green: "
-        "retry, or fix the credential/read failure.",
+        f"[gh_automerge_arm] WARNING: the required status checks could not be determined ({reason}). "
+        "Judging the head on its actual check runs instead (all completed, none failed).",
         file=sys.stderr,
     )
-    return fallback, "static-fallback"
+    return [], UNDETERMINED
 
 
 def _embedded_required_contexts(base: str, gh: Callable[[str], subprocess.CompletedProcess[str]]) -> list[str] | None:
@@ -290,17 +311,40 @@ def _ref_targets_base(include: list[Any], exclude: list[Any], base: str) -> bool
     return matches(include) and not matches(exclude)
 
 
+def _is_branch_target(target: Any) -> bool:
+    """Whether a ruleset's `target` is `branch` — the only target that carries required status checks.
+
+    GitHub's other targets (`repository`, `push`, `tag`) never gate a merge on a status check.
+    A ruleset that does not say (older payloads) is a branch ruleset, GitHub's default.
+    """
+    return target is None or target == "branch"
+
+
 def _required_from_ruleset(detail: Any, base: str) -> list[str]:
     """The `required_status_checks` contexts a ruleset enforces on `base`.
 
-    Raises ValueError on an unreadable ruleset — the caller fails closed rather
-    than silently under-reading what the merge will be gated on.
+    Only a `branch`-target ruleset whose `ref_name` include/exclude covers `base`
+    contributes. A repository- or push-target ruleset, a ruleset with no `ref_name`
+    condition (`conditions` null or `{}`), and one whose patterns do not cover `base`
+    all return [] — they are ignored, never raised on.
+
+    Raises ValueError only on a branch ruleset that IS ref-targeted but unreadable;
+    the caller reports the required set as undetermined rather than under-reading it.
     """
     if not isinstance(detail, dict):
         raise ValueError("ruleset detail is not an object")
-    conditions = (detail.get("conditions") or {}).get("ref_name")
-    if not isinstance(conditions, dict) or not conditions.get("include"):
-        raise ValueError("ruleset has no readable ref_name conditions")
+    if not _is_branch_target(detail.get("target")):
+        return []
+    all_conditions = detail.get("conditions") or {}
+    if not isinstance(all_conditions, dict):
+        raise ValueError("ruleset conditions are not an object")
+    conditions = all_conditions.get("ref_name")
+    if not conditions:
+        return []  # not ref-targeted: no branch is gated by its status checks
+    if not isinstance(conditions, dict):
+        raise ValueError("ruleset ref_name conditions are not an object")
+    if not conditions.get("include"):
+        return []  # ref_name with nothing included targets no branch
     include = conditions.get("include")
     exclude = conditions.get("exclude") or []
     if not isinstance(include, list) or not isinstance(exclude, list):
@@ -325,7 +369,7 @@ def _required_from_ruleset(detail: Any, base: str) -> list[str]:
 # need `admin:org` on the fleet's gh credential (verified absent 2026-09-08);
 # without it the gate that closes the `gh --auto` completion race is silently
 # blind if the org ever adopts them. Emitted on every LIVE resolution (never on
-# static-fallback, which already screams its own degradation). Remediation:
+# an undetermined set, which already screams its own degradation). Remediation:
 # grant `admin:org` (or a read-only org-rulesets equivalent) to the arm
 # credential, then extend `_with_rulesets` to union `GET /orgs/{org}/rulesets`
 # the same way it unions repo-level ones.
@@ -334,7 +378,7 @@ ORG_RULESET_BLINDNESS_MARKER = (
     "required contexts (credential lacks admin:org; verified 2026-09-08). If the org "
     "adopts org-ruleset required checks, this gate is blind to them. Remediation: "
     "grant admin:org (or org rulesets read) to the arm credential and extend "
-    "_with_rulesets to union GET /orgs/{org}/rulesets (ENG-10112)."
+    "_with_rulesets to union GET /orgs/{org}/rulesets."
 )
 
 
@@ -351,9 +395,9 @@ def _with_rulesets(
 ) -> tuple[list[str], str]:
     """Union enforced repo-level rulesets' required checks into the resolved set.
 
-    ANY ruleset read failure degrades the whole resolution to the static list:
-    a half-read gate (protection known, rulesets unknown) could arm on an
-    under-read, which is the dangerous direction. ORG-level rulesets are NOT
+    ANY read failure on a branch ruleset leaves the whole resolution undetermined
+    (`_undetermined`): a half-read gate (protection known, rulesets unknown) must not
+    pass for a complete one. Rulesets of any other target are skipped unread. ORG-level rulesets are NOT
     resolved here — the org listing needs the `admin:org` scope the fleet's gh
     credential does not hold (verified 2026-09-08); if the org adopts them,
     extend the credential scope or the fallback covers the platform lane only.
@@ -362,29 +406,31 @@ def _with_rulesets(
     """
     proc = gh("repos/{owner}/{repo}/rulesets?per_page=100")
     if proc.returncode != 0:
-        return _static_fallback(f"rulesets read failed: {(proc.stderr or 'no stderr').strip()[:200]}")
+        return _undetermined(f"rulesets read failed: {(proc.stderr or 'no stderr').strip()[:200]}")
     try:
         rulesets = json.loads(proc.stdout)
         if not isinstance(rulesets, list):
             raise ValueError("rulesets response is not a JSON array")
     except (json.JSONDecodeError, ValueError) as e:
-        return _static_fallback(f"rulesets read returned an unexpected shape ({e})")
+        return _undetermined(f"rulesets read returned an unexpected shape ({e})")
     extra: list[str] = []
     for entry in rulesets:
         if not isinstance(entry, dict):
-            return _static_fallback("rulesets list contains a non-object entry")
+            return _undetermined("rulesets list contains a non-object entry")
         if entry.get("enforcement") != "active":
             continue  # "evaluate" is dry-run, "disabled" is off — neither blocks a merge
+        if not _is_branch_target(entry.get("target")):
+            continue  # repository / push / tag rulesets (often enterprise) never require a check
         rid = entry.get("id")
         if rid is None:
-            return _static_fallback("ruleset list entry without an id")
+            return _undetermined("ruleset list entry without an id")
         detail_proc = gh(f"repos/{{owner}}/{{repo}}/rulesets/{rid}")
         if detail_proc.returncode != 0:
-            return _static_fallback(f"ruleset {rid} detail read failed")
+            return _undetermined(f"ruleset {rid} detail read failed")
         try:
             extra.extend(_required_from_ruleset(json.loads(detail_proc.stdout), base))
         except (json.JSONDecodeError, ValueError) as e:
-            return _static_fallback(f"ruleset {rid} unreadable ({e})")
+            return _undetermined(f"ruleset {rid} unreadable ({e})")
     # Live resolution succeeded (repo protection and/or repo rulesets). Org-level
     # rulesets remain unread — name that class loudly before returning.
     _emit_org_ruleset_blindness()
@@ -405,19 +451,19 @@ def resolve_required_contexts(
         canonical read failure — 404 is ambiguous between "not protected" and a
         non-admin credential, and the fleet's GitHub App installation token gets
         a 403 `Resource not accessible by integration` — the embedded
-        `branches/<base>` `.protection` summary disambiguates before the static
-        fallback is reached.
+        `branches/<base>` `.protection` summary disambiguates before the set is
+        reported undetermined.
       * repo-level rulesets, enforced and ref-targeted to <base> (see
         `_with_rulesets` for the org-level limitation).
 
-    Any remaining read failure degrades the WHOLE resolution to the static
-    PROTECTION_REQUIRED_CONTEXTS with a loud stderr warning (fail closed). An
+    Any remaining read failure leaves the WHOLE resolution undetermined, `([], "undetermined")`,
+    with a loud stderr warning; the gate then judges the head's own check runs. An
     empty union is live truth (no protection, no rulesets — two lanes were in
     that state on 2026-09-08) and passes vacuously; the caller prints the
     resolved set so a vacuous pass is visible, never silent.
 
     Returns (contexts, source) with source "branch-protection", "embedded
-    branch-protection", either "+rulesets", or "static-fallback".
+    branch-protection", either "+rulesets", or "undetermined".
     """
     run = run or _gh_run
 
@@ -444,11 +490,11 @@ def resolve_required_contexts(
         fail_reason = f"{prefix}: {detail}"
 
     #: try the readable embedded summary on ANY canonical failure — not
-    # only a 404 — before failing closed to the (now correct) static list.
+    # only a 404 — before reporting the set undetermined.
     embedded = _embedded_required_contexts(base, gh)
     if embedded is not None:
         return _with_rulesets(embedded, "embedded branch-protection", base, gh)
-    return _static_fallback(f"{fail_reason} and the embedded .protection field could not answer")
+    return _undetermined(f"{fail_reason} and the embedded .protection field could not answer")
 
 
 def require_green_block_reasons(
@@ -466,6 +512,7 @@ def require_green_block_reasons(
     at all) must be visible, never look like a green-by-checks arm.
     """
     required, source = resolve_required_contexts(base, run=run)
+    undetermined = source == UNDETERMINED
     # PRD 0745 / design §8: on a check-gated repository the gate's own check is PENDING at the
     # moment this arm runs — the control plane turns it green after it reads the session's
     # verdict — so demanding it here would refuse the one arm the design calls for. Exclude only
@@ -473,11 +520,18 @@ def require_green_block_reasons(
     gate = _gate_from_env()
     if gate is not None and gate[0] == "check":
         required = [c for c in required if c != gate[1]]
-    print(
-        f"PR #{pr}: --require-green evaluating against required contexts "
-        f"from {source}: {required or '(none — gate is vacuous)'}",
-        file=sys.stderr,
-    )
+    if undetermined:
+        print(
+            f"PR #{pr}: --require-green could not determine the required contexts; "
+            "evaluating every check run on the head instead",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            f"PR #{pr}: --require-green evaluating against required contexts "
+            f"from {source}: {required or '(none — gate is vacuous)'}",
+            file=sys.stderr,
+        )
 
     # Paginate explicitly: gh --paginate with a jq filter that returns an
     # array emits one array per page, and a naive json.loads of the whole
@@ -505,7 +559,12 @@ def require_green_block_reasons(
             break
         page += 1
 
-    reasons = blocking_reasons(check_runs, required=required)
+    if undetermined:
+        # The head's own runs are the evidence: every name must be completed and none failed.
+        skip = gate[1] if gate is not None and gate[0] == "check" else None
+        reasons = every_run_reasons(check_runs, ignore=skip)
+    else:
+        reasons = blocking_reasons(check_runs, required=required)
     return RequireGreenResult(reasons, required, source)
 
 
@@ -554,7 +613,7 @@ def main(
         action="store_true",
         help=(
             "refuse to arm unless every branch-protection required context is "
-            "already green on the PR head (ENG-9680 final re-arm). Open-time arm "
+            "already green on the PR head (the final re-arm). Open-time arm "
             "must NOT pass this flag."
         ),
     )
@@ -577,7 +636,7 @@ def main(
         if result.reasons:
             print(
                 f"PR #{pr}: refusing to arm auto-merge — required check(s) not green "
-                f"(ENG-9680 / ENG-9668; required contexts resolved from {result.source}). "
+                f"(required contexts resolved from {result.source}). "
                 f"Fix or wait, then re-run:",
                 file=sys.stderr,
             )

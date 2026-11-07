@@ -3,7 +3,7 @@
 
     gh_recheck_gate.py <pr> [--workflow NAME] [--timeout SECONDS]
 
-**Which gate this is comes from `$FLEET_VERIFY_GATE`, and it has two kinds (PRD 0745, design §8).**
+**Which gate this is comes from `$FLEET_VERIFY_GATE`, and it has two kinds.**
 On a customer install the control plane posts the verify verdict itself as a check through the
 install's App; there is no workflow to re-run, so on `check:<name>` this script prints that and
 exits 0 at once. Where the gate is a workflow file, the lease names it `workflow:<file>` and the

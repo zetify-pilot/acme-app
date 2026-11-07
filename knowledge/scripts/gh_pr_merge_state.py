@@ -35,7 +35,9 @@ So this script reads the one GraphQL shape that carries all of it and names ONE 
 * `conflicting` (exit 3) — `CONFLICTING` / `DIRTY`: rebase onto `origin/main`, push, re-arm.
 * `ejected` (exit 4) — removed from the queue for a reason other than a merge or a manual
   dequeue. Treat it as RED CI: read `failing` (the red `merge_group` checks), fix at the root
-  cause, push, re-arm.
+  cause, push, re-arm. **A removal older than the current head is not an ejection**:
+  the timeline keeps it for ever until the PR is added again, so a rebased PR reads `unarmed`
+  instead of being bounced on an event that never saw its head.
 * `unarmed` (exit 5) — open with nothing armed and nothing queued: nothing will ever merge
   it. Arm it (`gh_automerge_arm.py`).
 * `closed` (exit 6) — closed without merging.
@@ -59,7 +61,10 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import Any, Final, NamedTuple
+
+UTC = timezone.utc
 
 MERGED: Final = "merged"
 ARMED: Final = "armed"
@@ -97,6 +102,7 @@ QUERY: Final = (
     "pullRequest(number:$number){id number state isDraft headRefOid mergeable mergeStateStatus "
     "isInMergeQueue autoMergeRequest{enabledAt mergeMethod} "
     "mergeQueueEntry{state position enqueuedAt} "
+    "commits(last:1){nodes{commit{oid committedDate}}} "
     "timelineItems(last:20,itemTypes:[ADDED_TO_MERGE_QUEUE_EVENT,REMOVED_FROM_MERGE_QUEUE_EVENT]){"
     "nodes{__typename ... on AddedToMergeQueueEvent{createdAt} "
     "... on RemovedFromMergeQueueEvent{createdAt reason beforeCommit{oid}}}}}}}"
@@ -151,7 +157,25 @@ def queue_events(pr: dict[str, Any]) -> list[dict[str, Any]]:
     return [n for n in nodes if isinstance(n, dict) and n.get("__typename")]
 
 
-def still_queue_owned(pr: dict[str, Any]) -> bool:
+#: How long the timeline may outvote the live queue fields. The lag is the minutes a merge group takes to
+#: complete; an older add the live fields still do not confirm is a PR dropped from the queue with no event.
+QUEUE_LAG_GRACE_SECONDS = 15 * 60.0
+
+
+def _event_age(event: dict[str, Any], now: datetime) -> float | None:
+    raw = event.get("createdAt")
+    if not isinstance(raw, str) or not raw:
+        return None
+    try:
+        at = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=UTC)
+    return (now - at).total_seconds()
+
+
+def still_queue_owned(pr: dict[str, Any], now: datetime | None = None) -> bool:
     """Whether the queue's own durable record still holds the PR, even though the live fields do not.
 
     A live `isInMergeQueue`/`mergeQueueEntry` read can lag the timeline while the queue builds and
@@ -165,11 +189,25 @@ def still_queue_owned(pr: dict[str, Any]) -> bool:
         return False
     last = events[-1]
     kind = last.get("__typename")
+    if kind not in ("AddedToMergeQueueEvent", "RemovedFromMergeQueueEvent"):
+        return False
+    age = _event_age(last, now if now is not None else datetime.now(UTC))
+    if age is not None and age > QUEUE_LAG_GRACE_SECONDS:
+        return False
     if kind == "AddedToMergeQueueEvent":
         return True
-    if kind == "RemovedFromMergeQueueEvent":
-        return str(last.get("reason") or "").strip().lower() == "merged"
-    return False
+    return str(last.get("reason") or "").strip().lower() == "merged"
+
+
+def _head_commit_time(pr: dict[str, Any]) -> str:
+    """The current head commit's `committedDate`, as the node carries it — or `""`."""
+    commits = pr.get("commits")
+    nodes = commits.get("nodes") if isinstance(commits, dict) else None
+    if not isinstance(nodes, list) or not nodes:
+        return ""
+    last = nodes[-1]
+    commit = last.get("commit") if isinstance(last, dict) else None
+    return str(commit.get("committedDate") or "") if isinstance(commit, dict) else ""
 
 
 def last_removal(pr: dict[str, Any]) -> Removal | None:
@@ -177,6 +215,13 @@ def last_removal(pr: dict[str, Any]) -> Removal | None:
 
     An `AddedToMergeQueueEvent` after the removal supersedes it (the PR went back in), so only
     the final queue event counts. `None` when the PR never left the queue badly.
+
+    **A removal older than the current head is not a live ejection**. The timeline
+    keeps a removal for ever until the PR is added again, and a PR is only added once every
+    required check is green — so a rebased PR would read `ejected` for ever on an event that
+    never saw its head. `beforeCommit.oid` cannot tell them apart: for a `failed_checks`
+    ejection it is the `merge_group` commit, never the PR head. The head commit's own time is
+    the guard; a node that carries no `commits` keeps the pre-fix reading.
     """
     events = queue_events(pr)
     if not events:
@@ -187,9 +232,13 @@ def last_removal(pr: dict[str, Any]) -> Removal | None:
     reason = str(last.get("reason") or "").strip()
     if reason.lower() in BENIGN_REMOVALS:
         return None
+    created = str(last.get("createdAt") or "")
+    head_committed = _head_commit_time(pr)
+    if created and head_committed and created < head_committed:
+        return None
     before = last.get("beforeCommit")
     sha = str(before.get("oid") or "") if isinstance(before, dict) else ""
-    return Removal(reason=reason or "unknown", at=str(last.get("createdAt") or ""), merge_group_sha=sha)
+    return Removal(reason=reason or "unknown", at=created, merge_group_sha=sha)
 
 
 def classify(pr: dict[str, Any]) -> MergeState:

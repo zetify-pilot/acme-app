@@ -8,11 +8,11 @@ One line per input token: `<token>\\t<PG-id[,PG-id...]|->\\t<how it was derived>
 
 Why this exists: a program is going to carry an authored priority, and the work
 belonging to it inherits that rank. Only PRD issues ever carried a `Program`
-label — the git → Linear PRD projection puts one on a PRD via its frontmatter
+label — the git → tracker PRD projection puts one on a PRD via its frontmatter
 `slice:` — so the inheritance reached nothing else. Measured on the live board on
 2026-09-05: of 57 issues sitting in `Queued`, **zero** carried a `Program` label
 (the 15 open issues that did were all PRDs, every one of them in a PRD-lifecycle
-state). Bugs, tasks and cleanups — the majority of issue volume, born in Linear
+state). Bugs, tasks and cleanups — the majority of issue volume, born in the tracker
 with no git file — had no program association at all, so a program's rank had
 nothing to attach to. `check` is the one session that triages those, and
 this is what it reads to decide.
@@ -32,7 +32,7 @@ gets decided.
 **Several programs is the normal answer, and it is not a failure.** A component
 is routinely named by slices under different programs (`audit-log` sits under
 both and ), so this prints every candidate and the triager picks —
-the same "enumerate, never recall" rule check.md §5 applies to the Linear
+the same "enumerate, never recall" rule check.md §5 applies to the tracker
 Project. Collapsing to one here would be a guess wearing a derivation's clothes.
 
 **And no program is a real answer, not an error.** Plenty of work legitimately
@@ -94,7 +94,7 @@ def program_ids() -> list[str]:
     """Every program id, in register order — the closed valid set.
 
     An id absent from here is not a program, however plausible it looks. This is
-    the same set `linear_labels.program_label_names()` closes the label group on;
+    the same set `tracker_labels.program_label_names()` closes the label group on;
     a new row in the register widens both with no code change.
     """
     return [str(r["id"]) for r in _registers().programs(PROGRAMS.parent, file_name=PROGRAMS.name)]

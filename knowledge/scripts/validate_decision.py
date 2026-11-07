@@ -3,6 +3,7 @@
 
     python3 knowledge/scripts/validate_decision.py path/to/result.json
     python3 knowledge/scripts/validate_decision.py            # $FLEET_RESULT_FILE
+    python3 knowledge/scripts/validate_decision.py --summary "<the sentinel's summary>" [path]
 
 A run that cannot continue without a person's ruling ends `needs-decision` and writes ONE
 `decision` document to `$FLEET_RESULT_FILE`: a brief (what the work is, one concrete example,
@@ -17,7 +18,9 @@ The service checks the same document when the run reports, with the same predica
 done-sentinel and every reason is one the same session can fix in the same turn.
 
 Exit 0 when the document meets the card. Exit 1 when it breaks a rule — every reason is printed,
-one per line, each naming its rule (`decision-bare-id`, …). Exit 2 when there is nothing to check:
+one per line, each naming its rule (`decision-bare-id`, …). `--summary` also checks the done-sentinel's
+`summary`, which is the person's question wherever no card is drawn: one or two plain sentences, titles and
+never ids, what each answer does (`summary-names-an-id`, …). Exit 2 when there is nothing to check:
 no path, an unreadable file, or a document that is not `kind: "decision"`.
 
 Stdlib only, like every sibling script.
@@ -35,11 +38,19 @@ import _repo  # noqa: E402
 
 _repo.fleet_knowledge()
 
-from fleet_knowledge.decisions import decision_refusals  # noqa: E402
+from fleet_knowledge.decisions import decision_refusals, summary_refusals  # noqa: E402
 
 
 def main() -> int:
     args = sys.argv[1:]
+    summary: str | None = None
+    if "--summary" in args:
+        at = args.index("--summary")
+        if at + 1 >= len(args):
+            print("--summary takes the sentinel's summary text", file=sys.stderr)
+            return 2
+        summary = args[at + 1]
+        args = args[:at] + args[at + 2 :]
     path = args[0] if args else os.environ.get("FLEET_RESULT_FILE", "")
     if not path:
         print(
@@ -59,6 +70,8 @@ def main() -> int:
         print(f'{path} is not a `decision` result document (no `"kind": "decision"`)', file=sys.stderr)
         return 2
     reasons = decision_refusals(document)
+    if summary is not None:
+        reasons += summary_refusals(summary)
     if reasons:
         for reason in reasons:
             print(f"- {reason}", file=sys.stderr)

@@ -1,0 +1,542 @@
+/* The Docs page's own rules — a product-docs page and the Docs home (`docs.js`, `docs-screens.js`).
+ *
+ * Composes `fleet.css`'s tokens and declares none of its own; every colour is a `var(--…)` the
+ * shared sheet defines for both themes. Every class here is `dx-`-prefixed; the `md-*` classes
+ * inside a markdown run are `board.js`'s and keep the shared sheet's rules, with only the prose
+ * measure and typeface set for the article they sit in.
+ *
+ * THE HEADER BAND IS DARK IN BOTH THEMES, which no single token is: `--ink` is dark only in the
+ * light theme, and in the dark one even `--sunk` sits a shade ABOVE the page's `--ground`. So the
+ * band reads `--ink` with `--ground` text, and the two dark-theme selectors `fleet.css` itself uses
+ * swap it to `--ground` pushed toward black (`color-mix`, no new colour of its own) with `--ink`
+ * text — darker than the page, as the light band is — the same two selectors, so the band can
+ * never be in one theme while the page is in the other.
+ *
+ * PROSE IS SERIF AT A READABLE MEASURE (about 68 characters), the UI around it is the app's sans,
+ * and the page collapses to one column — no rail, stacked cards, a narrower step gutter — down to a
+ * 400px phone. Motion is opt-in to `prefers-reduced-motion: no-preference` only.
+ */
+
+/* ── the frame ─────────────────────────────────────────────────────────────── */
+/* THE PAGE NEVER SCROLLS SIDEWAYS: a wide table or a long command scrolls inside its own box, and
+   `clip` (not `hidden`) keeps the page from becoming a scroll container, so the rail stays sticky. */
+.dx{color:var(--ink);background:var(--ground);min-width:0;overflow-x:clip}
+.dx-vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+
+/* ── the header band ───────────────────────────────────────────────────────── */
+/* THE BAND IS THE THEME'S OWN: a raised surface over the page's ground, drawn from tokens only, so it
+   follows light, dark and the system setting with no rule of its own for any of them. */
+.dx-hero{background:var(--surface);color:var(--ink);border-bottom:1px solid var(--rule);padding:1.7rem max(16px,4%) 1.5rem}
+/* THE BAND'S TEXT STARTS WHERE THE ARTICLE STARTS: the inner box is as wide as the body below it
+   (the article alone, or article + rail on a wide screen), and the text keeps the article's measure. */
+.dx-hero-in{max-width:58rem;margin:0 auto}
+.dx-hero-in > .dx-title,.dx-hero-in > .dx-lede{max-width:52rem}
+@media (min-width:1180px){.dx-hero-in{max-width:76rem}}
+.dx-crumb{font-size:.76rem;color:var(--faint)}
+.dx-crumb a{color:var(--muted);text-decoration:none}
+.dx-crumb a:hover{text-decoration:underline}
+.dx-title{font-size:clamp(1.6rem,3vw,2.15rem);line-height:1.15;letter-spacing:-.02em;margin:.35rem 0 .55rem;font-weight:700;text-wrap:balance;color:inherit}
+.dx-lede .md-p{font-family:"Source Serif 4",Georgia,serif;font-size:1.06rem;line-height:1.5;color:var(--ink-2);margin:0;max-width:40rem}
+.dx-lede .md-a{color:var(--brass)}
+.dx-meta{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;margin-top:.8rem;font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--faint)}
+.dx-meta b{color:var(--brass);font-weight:500}
+.dx-hero :focus-visible{outline:2px solid var(--brass-edge);outline-offset:2px}
+
+/* ── the body: article, and the rail on a wide screen ──────────────────────── */
+/* THE BODY IS AS WIDE AS THE BAND'S INNER BOX AT EVERY WIDTH, RAIL OR NOT. Only a page with a rail
+   used to widen to 76rem on a wide screen; a page without one stayed a centred 58rem column under a
+   76rem band, so its text started about 90px right of its own title. Now every body is 76rem there
+   and a railless article keeps the article's 58rem, flush left under the title. */
+.dx-body{max-width:58rem;margin:0 auto;padding:2rem max(16px,4%) 4rem;box-sizing:content-box}
+.dx-article{min-width:0}
+.dx-rail{display:none}
+@media (min-width:1180px){
+  .dx-body{max-width:76rem}
+  .dx-body:not(.dx-has-rail) > .dx-article{max-width:58rem}
+  .dx-body.dx-has-rail{display:grid;grid-template-columns:minmax(0,58rem) 14rem;gap:3rem;justify-content:space-between}
+  .dx-rail{display:block;position:sticky;top:1rem;align-self:start;padding-top:2.4rem}
+}
+.dx-rail-h{margin:0 0 .5rem;font-family:"IBM Plex Mono",monospace;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.dx-rail ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--rule)}
+.dx-rail a{display:block;padding:.3rem 0 .3rem .8rem;margin-left:-1px;border-left:2px solid transparent;font-size:.8rem;color:var(--muted);text-decoration:none;line-height:1.35}
+.dx-rail a:hover{color:var(--ink);border-left-color:var(--brass-edge)}
+
+/* ── prose ─────────────────────────────────────────────────────────────────── */
+.dx-h{color:var(--ink);text-wrap:balance;scroll-margin-top:1rem}
+.dx-h2{font-size:1.3rem;letter-spacing:-.01em;margin:2.4rem 0 .6rem;line-height:1.25}
+.dx-h3{font-size:1.04rem;margin:1.8rem 0 .4rem}
+.dx-article .md-p,.dx-article .md-l{font-family:"Source Serif 4",Georgia,serif;font-size:1.08rem;line-height:1.65;color:var(--ink-2);max-width:78ch}
+.dx-article .md-p{margin:.7rem 0}
+.dx-article .md-p b,.dx-article .md-l b{color:var(--ink)}
+.dx-article .md-q{font-family:"Source Serif 4",Georgia,serif}
+.dx-article .md-pre{font-size:.8rem}
+.dx-article .md-t{font-size:.84rem}
+/* A FENCED BLOCK IS A WELL WITH ITS COPY BUTTON BESIDE THE CODE, never over it — a button laid over
+   the end of a long line hides exactly the part a reader has to scroll to see. The code scrolls
+   inside its own column. */
+.dx-code{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.5rem;margin:.9rem 0;border:1px solid var(--rule);border-radius:8px;background:var(--sunk);padding:.35rem .4rem .35rem 0}
+.dx-code .md-pre{margin:0;border:0;background:none;overflow-x:auto;white-space:pre}
+.dx-code-copy{align-self:start}
+/* A SCROLLING BOX SHOWS ITS SCROLLBAR. An overlay scrollbar (macOS by default) is invisible until
+   the reader scrolls, so a clipped table or command looked cut off with no way on; a styled webkit
+   scrollbar is a classic one that stays drawn while the box overflows. Firefox takes the standard
+   properties, which Chromium would let override the webkit ones, hence the `@supports` guard. */
+.dx-article .md-tw::-webkit-scrollbar,.dx-code .md-pre::-webkit-scrollbar{height:8px}
+.dx-article .md-tw::-webkit-scrollbar-thumb,.dx-code .md-pre::-webkit-scrollbar-thumb{background:var(--faint);border-radius:4px}
+.dx-article .md-tw::-webkit-scrollbar-track,.dx-code .md-pre::-webkit-scrollbar-track{background:transparent}
+@supports not selector(::-webkit-scrollbar){.dx-article .md-tw,.dx-code .md-pre{scrollbar-width:thin;scrollbar-color:var(--faint) transparent}}
+.dx-article .md-tw{max-width:100%}
+.dx-article code{font-size:.86em}
+.dx-a{text-decoration-thickness:1px}
+.dx-a:focus-visible{outline:2px solid var(--brass-edge);outline-offset:2px;border-radius:2px}
+.dx-kbd{font-family:"IBM Plex Mono",monospace;font-size:.78em;border:1px solid var(--rule-2);border-bottom-width:2px;border-radius:4px;padding:0 .32rem;background:var(--surface);color:var(--ink)}
+.dx-kbd-plus{color:var(--faint);margin:0 .12rem;font-size:.8em}
+.dx-note{font-size:.84rem;color:var(--muted)}
+.dx-err{border:1px solid var(--attn);background:var(--attn-bg);color:var(--attn);border-radius:8px;padding:.6rem .8rem;font-family:"IBM Plex Mono",monospace;font-size:.78rem;margin:1rem 0;line-height:1.45}
+.dx-err-at{opacity:.75}
+.dx-ierr{border-bottom:1.5px wavy var(--attn);color:var(--attn)}
+
+/* ── :term — the toggletip ─────────────────────────────────────────────────── */
+.dx-tt{position:relative}
+.dx-term{all:unset;cursor:pointer;border-bottom:1.5px dotted var(--brass);font:inherit;color:inherit}
+.dx-term:hover,.dx-term[aria-expanded="true"]{color:var(--brass)}
+.dx-term:focus-visible{outline:2px solid var(--brass-edge);outline-offset:2px;border-radius:2px}
+.dx-tip:empty{display:none}
+.dx-tip{position:absolute;left:0;top:calc(100% + 6px);z-index:6;width:min(17rem,80vw);background:var(--surface);border:1px solid var(--rule-2);border-radius:8px;box-shadow:var(--shadow);
+  padding:.6rem .75rem;font-family:Archivo,"Helvetica Neue",Arial,sans-serif;font-size:.8rem;line-height:1.45;color:var(--ink-2);text-align:left;white-space:normal}
+.dx-tip b{display:block;color:var(--ink);margin-bottom:.1rem}
+
+/* ── :::steps ──────────────────────────────────────────────────────────────── */
+.dx-steps{list-style:none;margin:1.2rem 0;padding:0}
+.dx-step{display:grid;grid-template-columns:5.5rem minmax(0,1fr);gap:1rem;padding:0 0 1.4rem;position:relative}
+.dx-step::after{content:"";position:absolute;left:2.7rem;top:2rem;bottom:.2rem;width:2px;background:var(--rule)}
+.dx-step:last-child::after{display:none}
+.dx-who{justify-self:center;align-self:start;font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;border-radius:999px;padding:.3rem .55rem;white-space:nowrap;position:relative;z-index:1}
+.dx-who-you{background:var(--brass-bg);color:var(--brass);border:1px solid var(--brass-edge)}
+.dx-who-fleet{background:var(--flight-bg);color:var(--flight);border:1px solid var(--flight)}
+.dx-who-nobody{background:var(--proven-bg);color:var(--proven);border:1px solid var(--proven)}
+.dx-step-b{min-width:0}
+.dx-step-t{margin:.15rem 0 .25rem;font-size:1.02rem;color:var(--ink)}
+.dx-step .md-p{margin:0 0 .4rem;font-size:1.02rem}
+
+/* ── :::callout ────────────────────────────────────────────────────────────── */
+.dx-callout{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.8rem;border-radius:10px;background:var(--brass-bg);padding:1rem 1.1rem;margin:1.4rem 0}
+.dx-callout-k{font-family:"IBM Plex Mono",monospace;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);font-weight:600;writing-mode:vertical-rl;transform:rotate(180deg)}
+.dx-callout-why{background:var(--brass-bg)}
+.dx-callout-tip{background:var(--flight-bg)} .dx-callout-tip .dx-callout-k,.dx-callout-tip .dx-callout-fig{color:var(--flight)}
+.dx-callout-careful{background:var(--attn-bg)} .dx-callout-careful .dx-callout-k,.dx-callout-careful .dx-callout-fig{color:var(--attn)}
+.dx-callout-b .md-p{margin:0 0 .4rem;font-size:1.02rem}
+.dx-callout-b .md-p:last-child{margin-bottom:0}
+.dx-callout-fig{display:block;font-size:1.6rem;font-weight:700;color:var(--brass);letter-spacing:-.02em;margin-bottom:.2rem;line-height:1.15}
+
+/* ── :::mode tabs ──────────────────────────────────────────────────────────── */
+.dx-mode{border:1px solid var(--rule);border-radius:10px;background:var(--surface);margin:1.2rem 0;overflow:hidden}
+.dx-mode-tabs{display:flex;border-bottom:1px solid var(--rule);background:var(--sunk)}
+.dx-mode-tab{flex:1;border:0;background:none;padding:.55rem .8rem;font:inherit;font-size:.84rem;color:var(--muted);cursor:pointer;text-align:left;border-bottom:2px solid transparent;min-height:2.75rem}
+.dx-mode-tab[aria-selected="true"]{color:var(--ink);background:var(--surface);border-bottom-color:var(--brass)}
+.dx-mode-tab:focus-visible{outline:2px solid var(--brass-edge);outline-offset:-2px}
+.dx-mode-tab small{display:block;font-family:"IBM Plex Mono",monospace;font-size:.64rem;color:var(--faint)}
+.dx-mode-p{padding:.3rem 1rem .6rem}
+.dx-mode-p .md-p{font-size:1rem}
+
+/* ── :::compare ────────────────────────────────────────────────────────────── */
+.dx-compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.7rem;margin:1.2rem 0}
+.dx-opt{border:1px solid var(--rule);border-radius:10px;background:var(--surface);padding:.9rem 1rem;box-shadow:var(--shadow);border-top:3px solid var(--brass-edge)}
+.dx-opt:nth-child(2){border-top-color:var(--flight)} .dx-opt:nth-child(3){border-top-color:var(--proven)}
+.dx-opt-t{margin:0 0 .5rem;font-size:1rem;color:var(--ink)}
+.dx-opt-l{margin:0}
+.dx-opt-l dt{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:.55rem}
+.dx-opt-l dd{margin:.1rem 0 0;font-size:.86rem;color:var(--ink-2);line-height:1.45}
+
+/* ── ::diagram ─────────────────────────────────────────────────────────────── */
+.dx-diagram{margin:1.3rem 0}
+.dx-qd{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--rule);border-radius:10px;background:var(--surface);overflow:hidden;box-shadow:var(--shadow)}
+.dx-qd-c{padding:1.1rem 1rem 1rem;position:relative;min-width:0}
+.dx-qd-c + .dx-qd-c{border-left:1px solid var(--rule)}
+.dx-qd-bar{position:absolute;inset:0 0 auto;height:4px}
+.dx-qd-b1{background:var(--brass-edge)} .dx-qd-b2{background:var(--flight)} .dx-qd-b3{background:var(--proven)}
+.dx-qd-q{font-family:"Source Serif 4",Georgia,serif;font-style:italic;font-size:1rem;color:var(--muted)}
+.dx-qd-a{font-size:1.22rem;font-weight:700;margin:.3rem 0 .2rem;color:var(--ink)}
+.dx-qd-d{font-size:.84rem;color:var(--ink-2)}
+.dx-life{display:inline-block;margin-top:.6rem;font-family:"IBM Plex Mono",monospace;font-size:.68rem;border-radius:3px;padding:.05rem .4rem;background:var(--sunk);color:var(--ink-2)}
+.dx-life-y{background:var(--proven-bg);color:var(--proven)}
+.dx-qd-ex{margin-top:.7rem;padding-top:.6rem;border-top:1px solid var(--rule);font-size:.8rem;color:var(--muted)}
+.dx-qd-ex b{color:var(--ink)}
+.dx-wl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--rule);border-radius:10px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.dx-wl-band{padding:.9rem .9rem 1rem;min-width:0}
+.dx-wl-band + .dx-wl-band{border-left:1px solid var(--rule)}
+.dx-wl-n{display:block;font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.dx-wl-t{display:block;font-size:.92rem;margin:.15rem 0 .6rem;color:var(--ink)}
+.dx-wl-st{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.45rem;font-size:.8rem;color:var(--ink-2)}
+.dx-wl-dot{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;margin-right:.35rem;background:var(--faint)}
+.dx-att{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.6rem;border-radius:3px;padding:0 .3rem;background:var(--sunk);color:var(--muted)}
+.dx-wl-dot.dx-att-alone{background:var(--flight)} .dx-att.dx-att-alone{background:var(--flight-bg);color:var(--flight)}
+.dx-wl-dot.dx-att-asks{background:var(--brass)} .dx-att.dx-att-asks{background:var(--brass-bg);color:var(--brass)}
+.dx-wl-dot.dx-att-call{background:var(--attn)} .dx-att.dx-att-call{background:var(--attn-bg);color:var(--attn)}
+.dx-wl-dot.dx-att-derived{background:none;border:1.5px dashed var(--proven)} .dx-att.dx-att-derived{background:var(--proven-bg);color:var(--proven)}
+.dx-kf{border:1px solid var(--rule);border-radius:10px;background:var(--surface);box-shadow:var(--shadow);padding:.9rem 1rem}
+.dx-kf-root{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--brass)}
+.dx-kf-l{list-style:none;margin:.4rem 0 0 .4rem;padding:0 0 0 .9rem;border-left:1px solid var(--rule-2)}
+.dx-kf-l li{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:.6rem;padding:.3rem 0;font-size:.84rem;color:var(--ink-2)}
+.dx-kf-l code{color:var(--ink)}
+
+/* ── ::live ────────────────────────────────────────────────────────────────── */
+.dx-live{border:1px solid var(--rule);border-radius:10px;background:var(--surface);box-shadow:var(--shadow);margin:.8rem 0;overflow:hidden;min-height:9rem}
+.dx-live-h{display:flex;justify-content:space-between;gap:.6rem;flex-wrap:wrap;padding:.5rem .85rem;border-bottom:1px solid var(--rule);font-size:.72rem;color:var(--faint)}
+.dx-dot{display:inline-flex;align-items:center;gap:.4rem;font-family:"IBM Plex Mono",monospace;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--proven);font-weight:600}
+.dx-dot::before{content:"";width:.45rem;height:.45rem;border-radius:50%;background:var(--proven)}
+.dx-dot-off{color:var(--faint)} .dx-dot-off::before{background:var(--faint)}
+.dx-live-b{padding:.9rem .85rem;display:flex;flex-direction:column;gap:.5rem}
+.dx-live-none{font-size:.88rem;color:var(--muted)}
+.dx-live-t{font-weight:700;font-size:1.02rem;color:var(--ink)}
+.dx-live-q{margin:0;font-family:"Source Serif 4",Georgia,serif;font-size:1rem;line-height:1.5;color:var(--ink-2);border-left:3px solid var(--brass-edge);padding-left:.8rem}
+.dx-kv{display:flex;flex-wrap:wrap;gap:.3rem 1.3rem;font-size:.8rem;color:var(--muted)}
+.dx-kv b{color:var(--ink-2)}
+.dx-live-at code{color:var(--muted)}
+.dx-live-f{display:flex;justify-content:space-between;gap:.6rem;flex-wrap:wrap;padding:.5rem .85rem;background:var(--sunk);font-size:.78rem}
+.dx-live-f code{color:var(--faint)}
+.dx-live-open{color:var(--brass);font-weight:600;text-decoration:none}
+.dx-live-open:hover{text-decoration:underline}
+.dx-sk{display:block;height:.8rem;border-radius:4px;background:var(--sunk);width:100%}
+.dx-sk-t{height:1rem;width:55%} .dx-sk-s{width:35%}
+@media (prefers-reduced-motion:no-preference){
+  .dx-live[aria-busy="true"] .dx-sk{animation:dx-pulse 1.4s ease-in-out infinite}
+  @keyframes dx-pulse{50%{opacity:.45}}
+}
+
+/* ── ::screen ──────────────────────────────────────────────────────────────── */
+.dx-screen{margin:1.4rem 0;border-radius:12px;background:linear-gradient(160deg,var(--brass-bg),var(--flight-bg));padding:1.2rem}
+.dx-screen-f{min-width:0}
+.dx-shot{border:1px solid var(--rule-2);border-radius:8px;background:var(--surface);box-shadow:var(--shadow);font-family:Archivo,"Helvetica Neue",Arial,sans-serif;color:var(--ink);user-select:none}
+.dx-chrome{display:flex;align-items:center;gap:.45rem;padding:.4rem .7rem;border-bottom:1px solid var(--rule);background:var(--sunk);font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--faint);border-radius:8px 8px 0 0}
+.dx-chrome i{width:.5rem;height:.5rem;border-radius:50%;background:var(--rule-2);display:inline-block}
+.dx-app{padding:.9rem 1rem;font-size:.8rem;line-height:1.4;overflow:hidden}
+/* A PIN SITS IN A GUTTER ITS ANCHOR OPENS, BESIDE THE LABEL, NEVER ON IT. The pin used to hang off
+   the anchor's top-left corner, so it covered the first letters of what it marked ("Waiting on you",
+   "fleet-box-1") and, near an edge, was clipped by the crop's `overflow:hidden`. A pinned anchor now
+   pads itself left by the pin's width and the pin sits in that padding: inside the anchor's own box,
+   so nothing clips it, and outside the label's text, so nothing is hidden. Inline, the pin is centred
+   on the line; on a block, it is level with the block's top and the block is at least a pin tall, so
+   the pin cannot spill onto the line under it. */
+.dx-anc{position:relative;display:inline-block}
+.dx-anc-block{display:block}
+.dx-anc-pinned{padding-left:1.7rem}
+.dx-anc-grow{flex:1;display:flex;min-width:0}
+.dx-pin{position:absolute;left:0;top:50%;transform:translateY(-50%);width:1.35rem;height:1.35rem;border-radius:50%;background:var(--brass);color:var(--surface);font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:600;
+  display:grid;place-items:center;box-shadow:0 0 0 2px var(--surface);z-index:2;line-height:1}
+.dx-anc-block > .dx-pin{top:0;transform:none}
+.dx-anc-block.dx-anc-pinned{min-height:1.35rem}
+.dx-legend{list-style:none;margin:.9rem 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.6rem}
+.dx-legend li{display:flex;gap:.5rem;font-size:.86rem;color:var(--ink-2);line-height:1.4}
+.dx-legend-n{flex:none;width:1.3rem;height:1.3rem;border-radius:50%;background:var(--brass);color:var(--surface);font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:600;display:grid;place-items:center}
+/* the crop's shapes — drawings of the app's own, never its classes, so a change to a real page
+   cannot restyle a picture of it */
+.dx-s-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:.2rem .5rem;margin:0 0 .6rem}
+.dx-s-eye{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);font-weight:600}
+.dx-s-title{font-size:1.02rem;font-weight:700}
+.dx-s-lead{margin:.2rem 0 .6rem;color:var(--muted);font-size:.78rem}
+.dx-s-lead b{color:var(--ink)}
+.dx-s-sec{margin:.9rem 0 .35rem;font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.dx-s-row{display:flex;align-items:center;flex-wrap:wrap;gap:.35rem .6rem;border:1px solid var(--rule);border-radius:6px;padding:.5rem .7rem;margin-bottom:.4rem}
+.dx-s-row.dx-s-hl{border-color:var(--brass-edge);box-shadow:0 0 0 3px var(--brass-bg)}
+.dx-s-main{flex:1;min-width:10rem}
+.dx-s-main small{display:block;color:var(--muted);margin-top:.15rem}
+.dx-s-counts{font-size:.74rem;color:var(--muted)}
+.dx-s-counts b{color:var(--ink);font-family:"IBM Plex Mono",monospace}
+.dx-s-chip{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.6rem;border:1px solid var(--rule-2);border-radius:3px;padding:.05rem .35rem;color:var(--ink-2);background:var(--surface);white-space:nowrap}
+.dx-s-on{border-color:var(--brass-edge);color:var(--brass);background:var(--brass-bg)}
+.dx-s-brass{border-color:var(--brass-edge);color:var(--brass);background:var(--brass-bg)}
+.dx-s-flight{border-color:var(--flight);color:var(--flight);background:var(--flight-bg)}
+.dx-s-proven{border-color:var(--proven);color:var(--proven);background:var(--proven-bg)}
+.dx-s-attn{border-color:var(--attn);color:var(--attn);background:var(--attn-bg)}
+.dx-s-btn{display:inline-block;border:1px solid var(--rule-2);border-radius:5px;padding:.2rem .55rem;font-size:.74rem;font-weight:600;color:var(--ink-2);background:var(--surface);white-space:nowrap}
+.dx-s-primary{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.dx-s-muted{color:var(--faint)}
+.dx-s-fold{margin-top:.5rem;font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:.6rem}
+.dx-s-pills{display:inline-flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem}
+.dx-s-card{border:1px solid var(--rule);border-radius:8px;padding:.7rem .8rem;margin:.4rem 0;background:var(--surface)}
+.dx-s-bar{display:flex;align-items:center;gap:.5rem;font-size:.74rem}
+.dx-s-prog{flex:1;height:4px;border-radius:2px;background:var(--sunk);overflow:hidden}
+.dx-s-prog i{display:block;width:33%;height:100%;background:var(--brass)}
+.dx-s-q{display:flex;flex-direction:column;gap:.3rem;margin:.6rem 0}
+.dx-s-opt{border:1px solid var(--rule);border-radius:5px;padding:.3rem .5rem;font-size:.76rem}
+.dx-s-picked{border-color:var(--brass-edge);background:var(--brass-bg)}
+.dx-s-foot{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem .45rem;margin-top:.5rem}
+.dx-s-sp{flex:1}
+.dx-s-hint{margin:.5rem 0 0;font-family:"IBM Plex Mono",monospace;font-size:.62rem;color:var(--faint)}
+.dx-s-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem .7rem;margin-bottom:.6rem}
+.dx-s-toolbar .dx-s-head{margin:0}
+.dx-s-tabs{display:inline-flex;flex-wrap:wrap;gap:.15rem;border-bottom:1px solid var(--rule)}
+.dx-s-tab{padding:.25rem .5rem;font-size:.74rem;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.dx-s-tab.dx-s-on{color:var(--ink);border-bottom-color:var(--brass);background:none}
+.dx-s-split{display:grid;grid-template-columns:minmax(0,1fr) 9.5rem;gap:.6rem}
+.dx-s-col{display:flex;flex-direction:column;gap:.5rem;min-width:0}
+.dx-s-tile{border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.dx-s-tileh{padding:.35rem .5rem;border-bottom:1px solid var(--rule);background:var(--sunk);font-size:.74rem}
+.dx-s-term{display:flex;flex-direction:column;padding:.5rem;font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--ink-2);background:var(--surface);min-height:3.4rem}
+.dx-s-composer{display:flex;gap:.4rem;align-items:center}
+.dx-s-input{flex:1;border:1px solid var(--rule-2);border-radius:5px;padding:.3rem .5rem;color:var(--faint);font-size:.72rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-s-dock{border:1px solid var(--rule);border-radius:6px;padding:.5rem;display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;min-width:0}
+.dx-s-dock .dx-s-tabs{flex-direction:column;border:0}
+.dx-s-spark{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--faint);border-bottom:1px dashed var(--rule-2);padding-bottom:.15rem}
+.dx-s-steps{display:inline-flex;gap:2px}
+.dx-s-steps i{width:.8rem;height:4px;border-radius:2px;background:var(--rule)}
+.dx-s-steps i.on{background:var(--flight)}
+.dx-s-promise{margin:0 0 .5rem;font-family:"Source Serif 4",Georgia,serif;font-size:.9rem;color:var(--ink-2);line-height:1.45}
+.dx-s-menu{display:inline-flex;flex-wrap:wrap;gap:.3rem}
+.dx-s-code{border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-top:.4rem}
+.dx-s-codeh{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.4rem;padding:.3rem .5rem;background:var(--sunk);font-family:"IBM Plex Mono",monospace;font-size:.62rem;color:var(--faint)}
+.dx-s-ok{color:var(--proven)}
+.dx-s-code pre{margin:0;padding:.5rem;font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--ink-2);white-space:pre-wrap}
+.dx-s-table{border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.dx-s-th,.dx-s-tr{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:.5rem;padding:.4rem .6rem}
+.dx-s-th{background:var(--sunk);font-family:"IBM Plex Mono",monospace;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.dx-s-tr + .dx-s-tr,.dx-s-th + .dx-s-tr{border-top:1px solid var(--rule)}
+.dx-s-tr small{display:block;color:var(--muted)}
+.dx-s-step{display:inline-block;margin:.2rem .6rem .2rem 0;font-size:.74rem;color:var(--muted)}
+.dx-s-step b{border:1px solid var(--rule-2);border-radius:4px;padding:0 .4rem;color:var(--ink);font-family:"IBM Plex Mono",monospace}
+.dx-s-facts{display:grid;grid-template-columns:auto 1fr;gap:.25rem .8rem;margin:.6rem 0 0;font-size:.76rem}
+.dx-s-facts dt{color:var(--faint)} .dx-s-facts dd{margin:0;color:var(--ink-2)}
+.dx-s-docktitle{display:block}
+
+/* ── ::action, ::cards, ::command, prev/next ───────────────────────────────── */
+.dx-action-w{margin:.6rem 0}
+.dx-action{display:inline-flex;align-items:center;gap:.5rem;background:var(--ink);color:var(--ground);border-radius:6px;padding:.55rem .95rem;font-weight:600;font-size:.88rem;text-decoration:none;min-height:2.75rem}
+.dx-action:hover{background:var(--ink-2)}
+.dx-action:focus-visible,.dx-card:focus-visible,.dx-pn-c:focus-visible,.dx-rail a:focus-visible,.dx-cmd-copy:focus-visible{outline:2px solid var(--brass-edge);outline-offset:2px}
+.dx-cards,.dx-home-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.7rem;margin:1.6rem 0}
+.dx-card,.dx-pn-c{display:flex;flex-direction:column;gap:.25rem;border:1px solid var(--rule);border-radius:10px;background:var(--surface);padding:.9rem 1rem;color:var(--ink);text-decoration:none;box-shadow:var(--shadow)}
+.dx-card:hover,.dx-pn-c:hover{border-color:var(--brass-edge)}
+.dx-card small,.dx-pn-c small{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.dx-card b,.dx-pn-c b{font-size:1rem}
+.dx-card span,.dx-pn-c span{font-size:.82rem;color:var(--muted);line-height:1.45}
+.dx-cmd{border:1px solid var(--rule);border-radius:8px;background:var(--surface);padding:.6rem .8rem;margin:.9rem 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem .6rem;align-items:center}
+.dx-cmd-n{font-family:"IBM Plex Mono",monospace;font-size:.88rem;color:var(--brass);font-weight:600;overflow-wrap:anywhere}
+.dx-cmd-copy{border:1px solid var(--rule-2);border-radius:5px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:.74rem;font-weight:600;padding:.25rem .6rem;cursor:pointer;min-height:2rem}
+.dx-cmd-copy:hover{border-color:var(--brass-edge)}
+.dx-cmd-p{grid-column:1 / -1;margin:0;font-size:.84rem;color:var(--muted)}
+.dx-fig{margin:1.3rem 0}
+/* `::embed`: the app's own live part, styled by the app's sheet; this only places it in the column. */
+.dx-embed{margin:1.3rem 0;min-width:0}
+.dx-pn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-top:3rem;padding-top:1.4rem;border-top:1px solid var(--rule)}
+.dx-pn-next{grid-column:2;text-align:right}
+
+/* ── the Docs home ─────────────────────────────────────────────────────────────
+   JOBS, NOT A LIST. One band for a newcomer, nine job cards with their first three reads, a row
+   of common tasks and the reference as quiet chips. Every colour is a token; the accent bars on
+   the newcomer's picture reuse the step badges' you / fleet / nobody colours. */
+.dx-home .dx-body{max-width:76rem}
+.dx-home .dx-hero-in{max-width:76rem}
+/* THE HOME. Two `learn` jobs drawn large with their picture; then one row per group. A group is a
+   colour on the card's edge and icon, from the state tokens: learn brass, use flight, run proven. */
+.dx-hl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr));gap:1.1rem;margin:0 0 2.2rem}
+.dx-hj{display:flex;flex-direction:column;gap:.3rem;min-width:0;padding:1rem 1.05rem;border:1px solid var(--rule);border-left:3px solid var(--rule);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);text-decoration:none}
+@media (prefers-reduced-motion:no-preference){.dx-hj{transition:border-color .15s,transform .15s}.dx-hj:hover{transform:translateY(-1px)}}
+.dx-hj-i{flex:none;width:2.2rem;height:2.2rem;border-radius:9px;display:grid;place-items:center;margin-bottom:.3rem}
+.dx-hj-i .dx-ico{width:1.15rem;height:1.15rem}
+.dx-hj-n{font-size:1rem;font-weight:700;letter-spacing:-.01em}
+.dx-hj-s{font-size:.84rem;line-height:1.45;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dx-hj-start{margin-top:.35rem;font-size:.8rem;color:var(--ink-2)}
+.dx-hj-start b{color:var(--ink)}
+.dx-hj-start i{font-style:normal}
+.dx-hj-prog{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:.5rem}
+.dx-hj-prog i{width:18px;height:4px;border-radius:2px;background:var(--rule)}
+.dx-hj-prog em{font:.64rem "IBM Plex Mono",monospace;font-style:normal;color:var(--faint);margin-left:.4rem;white-space:nowrap}
+.dx-hj-big{gap:1.1rem;padding:1.4rem 1.4rem 1.2rem;border-left-width:1px;border-top:4px solid var(--rule);border-radius:14px}
+.dx-hj-t{display:flex;gap:.9rem;align-items:flex-start}
+.dx-hj-t > div{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.dx-hj-big .dx-hj-i{width:2.6rem;height:2.6rem;border-radius:10px}
+.dx-hj-big .dx-hj-i .dx-ico{width:1.4rem;height:1.4rem}
+.dx-hj-g{font:600 .62rem "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;}
+.dx-hj-big .dx-hj-n{font-size:1.32rem;letter-spacing:-.015em}
+.dx-hj-big .dx-hj-s{font-family:"Source Serif 4",Georgia,serif;font-size:1rem;line-height:1.5;color:var(--ink-2);-webkit-line-clamp:3}
+.dx-hj-big .dx-hj-start{font-size:.84rem}
+.dx-hj-pic{margin-top:auto;padding:1rem;border-radius:10px;background:var(--ground);border:1px solid var(--rule);min-width:0;overflow-x:auto}
+.dx-hg{margin:0 0 2rem}
+.dx-hg-h{display:flex;align-items:center;gap:.5rem;font-size:1rem;margin:0 0 .8rem;letter-spacing:-.005em}
+.dx-hg-h span{width:10px;height:10px;border-radius:3px}
+.dx-hg-l{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:.8rem}
+.dx-nm-row{display:grid;grid-template-columns:1fr auto 2.6fr auto 1fr;align-items:center;gap:.4rem;min-width:22rem}
+.dx-nm-row > i{color:var(--faint);font-style:normal}
+.dx-nm{padding:.4rem .5rem;border-radius:7px;font-size:.74rem;font-weight:600;text-align:center;white-space:nowrap;background:var(--surface);border:1px solid var(--rule)}
+.dx-nm-you{border-color:var(--brass-edge);color:var(--brass)}
+.dx-nm-fleet{border-color:var(--flight);color:var(--flight)}
+.dx-nm-nobody{border-color:var(--proven);color:var(--proven)}
+.dx-nm-loop{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.25rem;padding:.35rem;border-radius:9px;border:1px dashed var(--flight)}
+.dx-nm-loop em{grid-column:1/-1;text-align:center;font:italic .68rem "Source Serif 4",Georgia,serif;color:var(--flight)}
+.dx-nm-cyc{width:2.6rem;height:1.8rem;color:var(--flight)}
+.dx-nm-base{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;margin-top:.6rem;min-width:22rem}
+.dx-nm-base span{padding:.4rem;border-radius:7px;background:var(--surface);border:1px dashed var(--rule-2);font-size:.72rem;text-align:center;color:var(--muted)}
+.dx-km-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem}
+.dx-km-mini > div{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.dx-km-mini small{font:600 .56rem "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.dx-km-mini span{padding:.32rem .5rem;border-radius:6px;background:var(--surface);border:1px solid var(--rule);font-size:.74rem;font-weight:600}
+.dx-km-mini .a{border-left:3px solid var(--brass-edge)}
+.dx-km-mini .s{border-left:3px solid var(--flight)}
+.dx-km-mini .p{border-left:3px solid var(--proven)}
+.dx-g-learn .dx-hj,.dx-g-learn.dx-hj{border-left-color:var(--brass-edge)}
+.dx-g-learn .dx-hj:hover,.dx-g-learn.dx-hj:hover{border-color:var(--brass-edge)}
+.dx-g-learn .dx-hj-i,.dx-g-learn .dx-hj-g,.dx-g-learn .dx-hj-start i{color:var(--brass)}
+.dx-g-learn .dx-hj-i{background:var(--brass-bg)}
+.dx-g-learn .dx-hj-prog i.on,.dx-g-learn .dx-hg-h span{background:var(--brass-edge)}
+.dx-g-use .dx-hj,.dx-g-use.dx-hj{border-left-color:var(--flight)}
+.dx-g-use .dx-hj:hover,.dx-g-use.dx-hj:hover{border-color:var(--flight)}
+.dx-g-use .dx-hj-i,.dx-g-use .dx-hj-g,.dx-g-use .dx-hj-start i{color:var(--flight)}
+.dx-g-use .dx-hj-i{background:color-mix(in srgb,var(--flight) 12%,transparent)}
+.dx-g-use .dx-hj-prog i.on,.dx-g-use .dx-hg-h span{background:var(--flight)}
+.dx-g-run .dx-hj,.dx-g-run.dx-hj{border-left-color:var(--proven)}
+.dx-g-run .dx-hj:hover,.dx-g-run.dx-hj:hover{border-color:var(--proven)}
+.dx-g-run .dx-hj-i,.dx-g-run .dx-hj-g,.dx-g-run .dx-hj-start i{color:var(--proven)}
+.dx-g-run .dx-hj-i{background:color-mix(in srgb,var(--proven) 12%,transparent)}
+.dx-g-run .dx-hj-prog i.on,.dx-g-run .dx-hg-h span{background:var(--proven)}
+.dx-hj-big.dx-g-learn{border-left-color:var(--rule);border-top-color:var(--brass-edge)}
+.dx-hj-big.dx-g-learn:hover{border-color:var(--brass-edge)}
+.dx-row{display:grid;grid-template-columns:11rem minmax(0,1fr);gap:1rem;align-items:baseline;padding:1rem 0;border-top:1px solid var(--rule)}
+.dx-row h3{margin:0;font-size:.9rem}
+.dx-row h3 em{display:block;font:400 .66rem "IBM Plex Mono",monospace;color:var(--faint);font-style:normal;margin-top:.2rem}
+.dx-chips{display:flex;flex-wrap:wrap;gap:.45rem}
+.dx-chips a{padding:.4rem .75rem;border-radius:999px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);text-decoration:none;font-size:.82rem}
+.dx-chips a:hover{border-color:var(--brass-edge);color:var(--brass)}
+.dx-chips-q a{font-family:"IBM Plex Mono",monospace;font-size:.74rem;border-radius:6px}
+.dx-home-s .dx-h2{margin-top:2rem}
+.dx-home-g{margin:.8rem 0 0}
+
+/* ── a job page's blocks ───────────────────────────────────────────────────────── */
+.dx-ideas{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.8rem;margin:1rem 0 1.2rem}
+.dx-idea{padding:1rem;border:1px solid var(--rule);border-top:3px solid var(--brass-edge);border-radius:10px;background:var(--surface)}
+.dx-idea:nth-child(2){border-top-color:var(--flight)}
+.dx-idea:nth-child(3){border-top-color:var(--proven)}
+.dx-idea-n{display:block;font-size:1rem;margin-bottom:.3rem}
+.dx-idea-t{display:block;font-size:.86rem;color:var(--ink-2);line-height:1.45}
+.dx-path{list-style:none;margin:1rem 0 .4rem;padding:0;display:flex;flex-direction:column;gap:.5rem}
+.dx-path-a{display:grid;grid-template-columns:2.2rem minmax(0,1fr) auto;gap:1rem;align-items:center;padding:.9rem 1rem;border:1px solid var(--rule);border-radius:10px;background:var(--surface);color:var(--ink);text-decoration:none}
+.dx-path-a:hover{border-color:var(--brass-edge)}
+.dx-path-n{width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--ground);font-weight:700;font-size:.85rem}
+.dx-path li:first-child .dx-path-n{background:var(--brass);color:var(--ground)}
+/* IN THE DARK THEME `--ink` IS NEAR-WHITE, so ink discs glared beside the one accented step. There
+   the later steps are quiet wells with a rule edge and the brass first step stays the one bright mark. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dx-path li:not(:first-child) .dx-path-n{background:var(--sunk);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--rule-2)}}
+:root[data-theme="dark"] .dx-path li:not(:first-child) .dx-path-n{background:var(--sunk);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--rule-2)}
+.dx-path-b b{display:block;font-size:.98rem}
+.dx-path-b span{display:block;font-size:.84rem;color:var(--muted);line-height:1.4;margin-top:.15rem}
+.dx-path-m{font:.7rem "IBM Plex Mono",monospace;color:var(--faint)}
+.dx-path-t{margin:0 0 1.2rem;font:.7rem "IBM Plex Mono",monospace;color:var(--faint);text-align:right}
+.dx-pages{list-style:none;margin:1rem 0 1.2rem;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.2rem 1.6rem}
+/* the hover well hangs LEFT into the gutter so the titles align with the prose, and stops at the
+   column's right edge — a symmetric negative margin pushed the right column 9px past the article */
+.dx-pages a{display:block;padding:.5rem .55rem;margin:0 0 0 -.55rem;border-radius:7px;color:var(--ink);text-decoration:none}
+.dx-pages a:hover{background:var(--surface)}
+.dx-pages b{display:block;font-size:.92rem}
+.dx-pages a > span{display:block;font-size:.8rem;color:var(--muted);line-height:1.4}
+
+/* ── the knowledge map and the Fleet map ────────────────────────────────────── */
+.dx-km{border:1px solid var(--rule);border-radius:12px;background:var(--surface);padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.dx-km-h{margin-bottom:1rem}
+.dx-km-h code{font:600 .95rem "IBM Plex Mono",monospace;background:none;padding:0}
+.dx-km-h span{font:.75rem "IBM Plex Mono",monospace;color:var(--faint);margin-left:.5rem}
+.dx-km-g{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:1rem}
+.dx-km-c{display:flex;flex-direction:column;gap:.45rem;padding:.9rem;border-radius:9px;background:var(--ground);border:1px solid var(--rule);min-width:0}
+.dx-km-c small{font:600 .62rem "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.dx-km-c small:not(:first-child){margin-top:.4rem}
+.dx-km-i{padding:.5rem .65rem;border-radius:8px;background:var(--surface);border:1px solid var(--rule)}
+.dx-km-a,.dx-km-s,.dx-km-p{border-left:4px solid}
+.dx-km-a{border-left-color:var(--brass-edge)}
+.dx-km-s{border-left-color:var(--flight)}
+.dx-km-p{border-left-color:var(--proven)}
+.dx-km-i b{display:block;font-size:.86rem}
+.dx-km-i span{font-size:.74rem;color:var(--muted)}
+.dx-km-by{font:italic .72rem "Source Serif 4",Georgia,serif;color:var(--faint);text-align:center}
+.dx-km-n{margin:.2rem 0 0;font-size:.76rem;color:var(--muted)}
+.dx-km-f{margin:1rem 0 0;font-family:"Source Serif 4",Georgia,serif;font-size:.98rem;color:var(--ink-2)}
+.dx-fm{border:1px solid var(--rule);border-radius:12px;background:var(--surface);padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.dx-fm-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);gap:.5rem;align-items:stretch}
+.dx-fm-s{display:flex;flex-direction:column;gap:.35rem;padding:.8rem;border-radius:9px;background:var(--ground);border:1px solid var(--rule);min-width:0}
+.dx-fm-s b{font-size:.9rem}
+.dx-fm-s > span:last-child{font-size:.78rem;color:var(--muted);line-height:1.4}
+.dx-fm-s .dx-who{align-self:flex-start}
+.dx-fm-ar{align-self:center;color:var(--faint);font-style:normal}
+.dx-fm-base{margin-top:.9rem;padding-top:.9rem;border-top:1px dashed var(--rule-2)}
+.dx-fm-base small{font:600 .62rem "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.dx-fm-base div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;margin-top:.5rem}
+.dx-fm-base span{padding:.6rem .7rem;border-radius:8px;background:var(--ground);border:1px solid var(--rule);font-size:.78rem;color:var(--muted)}
+.dx-fm-base b{display:block;color:var(--ink);font-size:.86rem}
+@media (max-width:860px){
+  .dx-row{grid-template-columns:1fr;gap:.5rem}
+  .dx-pages{grid-template-columns:1fr}
+  .dx-km-g{grid-template-columns:1fr}
+  .dx-fm-row{grid-template-columns:1fr}
+  .dx-fm-ar{transform:rotate(90deg);justify-self:center}
+  .dx-fm-base div{grid-template-columns:1fr}
+}
+@media (max-width:1180px){.dx-hg-l{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.dx-hg-l{grid-template-columns:1fr}
+  /* the work line turns to run top to bottom rather than scroll inside its card */
+  .dx-nm-row,.dx-nm-base{min-width:0}
+  .dx-nm-row{grid-template-columns:1fr}
+  .dx-nm-row > i{justify-self:center;transform:rotate(90deg)}}
+
+/* ── narrow screens, down to 400px ─────────────────────────────────────────── */
+@media (max-width:720px){
+  .dx-hero{padding:1.3rem 16px 1.2rem}
+  .dx-body{padding:1.1rem 16px 3rem}
+  .dx-qd,.dx-wl{grid-template-columns:1fr}
+  .dx-qd-c + .dx-qd-c,.dx-wl-band + .dx-wl-band{border-left:0;border-top:1px solid var(--rule)}
+  .dx-step{grid-template-columns:4.4rem minmax(0,1fr);gap:.7rem}
+  .dx-step::after{left:2.2rem}
+  .dx-screen{padding:.9rem .7rem}
+  .dx-s-split{grid-template-columns:1fr}
+  .dx-pn{grid-template-columns:1fr}
+  .dx-pn-next{grid-column:1;text-align:left}
+  .dx-kf-l li{grid-template-columns:1fr;gap:.1rem}
+}
+@media (max-width:440px){
+  .dx-who{font-size:.58rem;padding:.25rem .4rem}
+  .dx-step{grid-template-columns:3.7rem minmax(0,1fr)}
+  .dx-step::after{left:1.85rem}
+  .dx-mode-tabs{flex-direction:column}
+  .dx-s-th,.dx-s-tr{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+  .dx-s-th span:nth-child(n+3),.dx-s-tr span:nth-child(n+3){display:none}
+}
+@media (prefers-reduced-motion:no-preference){
+  .dx-card,.dx-pn-c,.dx-rail a,.dx-mode-tab{transition:border-color .15s,color .15s,background-color .15s}
+}
+
+
+/* ── search, in the band ─────────────────────────────────────────────────────
+   The box is a sunk well on the band, in the theme's tokens like the band itself; the results drop
+   below as a surface card, above everything. */
+.dx-hero-top{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:2.2rem}
+.dx-search{position:relative;flex:0 1 20rem;min-width:0}
+.dx-search-big{max-width:40rem;margin:1.1rem 0 .2rem}
+.dx-search input{width:100%;box-sizing:border-box;height:2.3rem;padding:0 2.2rem 0 2.2rem;border-radius:8px;border:1px solid var(--rule);background:var(--sunk);color:inherit;font:inherit;font-size:.86rem;outline:none}
+.dx-search-big input{height:2.7rem;font-size:.98rem;padding-left:2.6rem;border-radius:10px}
+.dx-search input::placeholder{color:var(--faint)}
+.dx-search input:focus{border-color:var(--brass-edge);background:var(--surface)}
+.dx-search input::-webkit-search-cancel-button{display:none}
+.dx-search-i{position:absolute;left:.7rem;top:50%;width:1rem;height:1rem;transform:translateY(-50%);color:var(--faint);pointer-events:none}
+.dx-search-big .dx-search-i{left:.9rem;width:1.15rem;height:1.15rem}
+.dx-search-k{position:absolute;right:.6rem;top:50%;transform:translateY(-50%);font-family:"IBM Plex Mono",monospace;font-size:.7rem;padding:0 .35rem;border:1px solid var(--rule-2);border-radius:4px;color:var(--faint);pointer-events:none}
+.dx-search input:focus ~ .dx-search-k{display:none}
+.dx-search-r{position:absolute;z-index:40;top:calc(100% + .4rem);right:0;width:min(34rem,calc(100vw - 32px));max-height:min(70vh,32rem);overflow:auto;padding:.35rem;border:1px solid var(--rule);border-radius:10px;background:var(--surface);color:var(--ink);box-shadow:0 12px 32px rgba(0,0,0,.22)}
+.dx-search-big .dx-search-r{left:0;right:auto;width:100%}
+.dx-sr-o{display:block;padding:.6rem .7rem;border-radius:7px;color:var(--ink);text-decoration:none}
+.dx-sr-o[aria-selected="true"],.dx-sr-o:hover{background:var(--brass-bg)}
+.dx-sr-o small{display:block;font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.dx-sr-o b{display:block;font-size:.92rem;margin:.1rem 0}
+.dx-sr-o span{display:block;font-size:.8rem;line-height:1.45;color:var(--muted)}
+.dx-sr-o mark{background:none;color:var(--brass);font-weight:600}
+.dx-sr-none{margin:0;padding:.8rem;font-size:.84rem;color:var(--muted)}
+@media (max-width:640px){
+  .dx-hero-top{flex-direction:column;align-items:stretch;gap:.6rem}
+  .dx-search{flex:none}
+  .dx-search-k{display:none}
+}
+.dx-hero-home{padding-top:2.2rem;padding-bottom:1.9rem}
+.dx-home-a{padding-bottom:1rem}
+/* the home's cards run the full width of its band, unlike a page's 58rem reading column */
+.dx-home .dx-body > .dx-article.dx-home-a{max-width:none}
+.dx-fm-you{border-top:3px solid var(--brass-edge)}
+.dx-fm-fleet{border-top:3px solid var(--flight)}
+.dx-fm-nobody{border-top:3px solid var(--proven)}
+.dx-dot-ex{color:var(--brass)} .dx-dot-ex::before{background:var(--brass-edge)}
+.dx-live-f > span{font-size:.72rem;color:var(--faint)}

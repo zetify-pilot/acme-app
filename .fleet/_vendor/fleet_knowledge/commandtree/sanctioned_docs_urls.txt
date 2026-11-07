@@ -1,0 +1,10 @@
+# Vendor-named URLs the product-docs reading may carry, one per line.
+#
+# `fleet-knowledge` is not on a package index and will not be, so a person who needs the `fleet`
+# command must copy the supported install command's repository URL. The customer install guides
+# already allow the same repository (`deploy/docs/names.toml`). `checks/slots/_render.scan_rendered`
+# blanks these exact strings in the product-docs reading (`.fleet/docs/`), and the agent-reading
+# guard does the same, so a command render still refuses them. Held as data, not as a Python
+# literal, because the package must carry no product name in its modules — see
+# `test_no_module_hardcodes_a_repository_or_a_product_name`.
+https://github.com/ZetifyAI/fleet

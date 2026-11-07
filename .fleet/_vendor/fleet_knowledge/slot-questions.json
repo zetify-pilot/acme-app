@@ -1,0 +1,1172 @@
+{
+  "version": 1,
+  "slots": [
+    {
+      "id": "process-envelope",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "How an execute command drives one unit of work to a merged PR (Rules A–J).",
+      "fill": [
+        ".claude/process/autonomous-drive.md"
+      ],
+      "consumed_by": [
+        "arch-reconcile",
+        "bug-fix",
+        "own",
+        "page-improve",
+        "prd-blueprint",
+        "prd-design",
+        "prd-implement",
+        "process-improve",
+        "push",
+        "repo-init",
+        "task-implement",
+        "verify"
+      ]
+    },
+    {
+      "id": "process-implementation",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "The coordinator/sub-agent split, the per-wave commit loop, the verification model.",
+      "fill": [
+        ".claude/process/implementation.md"
+      ],
+      "consumed_by": [
+        "bug-fix",
+        "page-improve",
+        "prd-implement",
+        "prd-verify",
+        "task-implement",
+        "verify"
+      ]
+    },
+    {
+      "id": "process-interview",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "How a command asks a human: the interview card (plain words, one example, no bare ids, marked recommendation, rationale on every option) inlined into every command that asks, the `decision` document a headless park writes the card into (checked by `knowledge/scripts/validate_decision.py`), and the long form — discovery, acting on the answer, headless escalation. The card carries the writing rules (`writing.md`: English for everything that lasts, plain language for people), which the rules block and every run's prompt also inline.",
+      "fill": [
+        ".claude/process/interview.md",
+        ".claude/process/interview-card.md",
+        ".claude/process/writing.md",
+        ".claude/process/decision-document.md"
+      ],
+      "consumed_by": [
+        "ask",
+        "audit",
+        "bug-fix",
+        "bug-reproduce",
+        "check",
+        "component-create",
+        "connector-build",
+        "idea-create",
+        "intake",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "mockup",
+        "own",
+        "page-improve",
+        "page-spec",
+        "prd-blueprint",
+        "prd-cancel",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-verify",
+        "program-create",
+        "program-decompose",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "qa",
+        "repo-init",
+        "route",
+        "sidekick",
+        "slice-create",
+        "slice-edit",
+        "slice-refine",
+        "task-implement",
+        "unblock",
+        "verify"
+      ]
+    },
+    {
+      "id": "process-decision-write-back",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "What a settled decision looks like when written down, and where the next reader finds it.",
+      "fill": [
+        ".claude/process/decision-write-back.md"
+      ],
+      "consumed_by": [
+        "own",
+        "program-deliver",
+        "unblock"
+      ]
+    },
+    {
+      "id": "process-shaping-headless",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "How a shaping command runs headless on the fleet: the result-file protocol, round accounting, the question rail, the deterministic branch and the merge, the `landed` result, the sentinel table and refusals by sentinel.",
+      "fill": [
+        ".claude/process/shaping-headless.md"
+      ],
+      "consumed_by": [
+        "knowledge-describe",
+        "prd-blueprint",
+        "prd-fill",
+        "program-demonstrate",
+        "program-shape",
+        "slice-refine"
+      ]
+    },
+    {
+      "id": "process-knowledge-bootstrap",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "The shapes a knowledge bootstrap writes into a repository that has no corpus yet — the progress file, the per-component drafts, and the component registry, feature map, requirement register and journey shapes the shipped readers parse.",
+      "fill": [
+        ".claude/process/knowledge-bootstrap-formats.md"
+      ],
+      "consumed_by": [
+        "knowledge-bootstrap",
+        "knowledge-describe"
+      ]
+    },
+    {
+      "id": "process-spine",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "The Command / Step / Artifact vocabulary every spine is written in.",
+      "fill": [
+        ".claude/process/spine.md"
+      ],
+      "consumed_by": [
+        "arch-reconcile",
+        "ask",
+        "audit",
+        "bug-create",
+        "bug-fix",
+        "bug-reproduce",
+        "check",
+        "component-create",
+        "connector-build",
+        "idea-create",
+        "intake",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "mockup",
+        "own",
+        "page-improve",
+        "page-spec",
+        "prd-blueprint",
+        "prd-cancel",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "process-improve",
+        "program-create",
+        "program-decompose",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "program-ship",
+        "push",
+        "qa",
+        "qa-verify",
+        "repo-init",
+        "route",
+        "sidekick",
+        "slice-create",
+        "slice-edit",
+        "slice-refine",
+        "task-create",
+        "task-implement",
+        "unblock",
+        "verify"
+      ]
+    },
+    {
+      "id": "process-issue-shape",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "What a well-formed issue carries, and which hand writes each field.",
+      "fill": [
+        ".claude/process/issue-shape.md"
+      ],
+      "consumed_by": [
+        "audit",
+        "bug-create",
+        "bug-reproduce",
+        "check",
+        "idea-create",
+        "intake",
+        "own",
+        "prd-implement",
+        "prd-verify",
+        "program-deliver",
+        "qa",
+        "sidekick",
+        "unblock",
+        "verify"
+      ]
+    },
+    {
+      "id": "process-planning-ladder",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "Which kind of work a request is: the two state questions (broken is a bug, exploratory is an idea), then the ordered first-match ladder — component, capability or outcome, feature area, theme, task, PRD, slice, program — with the size tests, the program tests (a new program only when no existing open home fits and the work holds at least two slices), the rule that a proposal says why it is not each smaller rung, and worked examples. Inlined into every command that classifies; where each kind lives in a repository stays that repository's `entity-model` answer.",
+      "fill": [
+        ".claude/process/planning-ladder.md"
+      ],
+      "consumed_by": [
+        "check",
+        "intake",
+        "route"
+      ]
+    },
+    {
+      "id": "process-feature-flow",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "The feature flows in a repository that plans by area: a feature request's placement question (the best-matching feature and use, alternatives, a new feature, not a feature) and the dossier's confirmed placement; what route proposes for a feature request, a new feature (its map only) and a plan for a use or a whole feature (one to three named slices with their pieces of work); and what slice:create writes from each. Inlined into every command that runs them.",
+      "fill": [
+        ".claude/process/feature-flow.md"
+      ],
+      "consumed_by": [
+        "intake",
+        "route",
+        "slice-create"
+      ]
+    },
+    {
+      "id": "registers-triage-partition",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "The workflow-state machine: every state, every legal transition, the parks a human owns.",
+      "fill": [
+        ".claude/registers/triage-partition.md"
+      ],
+      "consumed_by": [
+        "arch-reconcile",
+        "audit",
+        "bug-create",
+        "bug-fix",
+        "check",
+        "idea-create",
+        "own",
+        "page-improve",
+        "prd-implement",
+        "prd-verify",
+        "program-deliver",
+        "program-prove",
+        "program-ship",
+        "qa",
+        "task-create",
+        "unblock",
+        "verify"
+      ]
+    },
+    {
+      "id": "rubric-issue-priority",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "How to choose a priority 1–4. Fleet-wide: every lane files into one tracker workspace, so the scale must mean one thing.",
+      "fill": [
+        ".claude/rubrics/issue-priority.md"
+      ],
+      "consumed_by": [
+        "audit",
+        "check",
+        "prd-create",
+        "prd-fill"
+      ]
+    },
+    {
+      "id": "rubric-finding-severity",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "How to grade a finding S1–S4, and how that maps to priority.",
+      "fill": [
+        ".claude/rubrics/finding-severity.md"
+      ],
+      "consumed_by": [
+        "audit",
+        "qa"
+      ]
+    },
+    {
+      "id": "rubric-architecture-red-team",
+      "tier": "shared",
+      "requirement": "optional",
+      "answers": "The pre-ship adversarial design pass, R1–R7.",
+      "degrade": "prd:design runs without its red-team critique step.",
+      "fill": [
+        ".claude/rubrics/architecture-red-team.md"
+      ],
+      "consumed_by": [
+        "prd-blueprint",
+        "prd-design"
+      ]
+    },
+    {
+      "id": "rubric-docs",
+      "tier": "shared",
+      "requirement": "optional",
+      "answers": "What a user-facing page is graded against: one page is one kind, prerequisites are stated, every how-to ends with a success check, no dead ends, terminology from the repository's own answers, and voice findings that never block.",
+      "degrade": "Docs pages are written with no shared bar: kinds and prerequisites go unstated, a how-to may end without a success check, and nothing routes a voice finding.",
+      "fill": [
+        ".claude/rubrics/docs.md"
+      ],
+      "consumed_by": []
+    },
+    {
+      "id": "process-design-fidelity",
+      "tier": "shared",
+      "requirement": "optional",
+      "answers": "The taste bar a UI surface is built and verified against: the named high-craft reference, the mockup loop that renders and criticises before a person sees it, the build-time fix loop that fixes to the bar, and the visual-regression baseline.",
+      "degrade": "The PRD pipeline gates UI on correctness alone. A surface that renders without a console error ships however it looks — no reference above our own average, no build-time loop that fixes to a bar, and no screenshot baseline to catch drift — which is the functional-but-ugly page this contract exists to stop.",
+      "fill": [
+        ".claude/process/design-fidelity-loop.md",
+        ".claude/process/mockup-loop.md"
+      ],
+      "consumed_by": [
+        "mockup",
+        "page-improve",
+        "prd-blueprint",
+        "prd-design",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify"
+      ]
+    },
+    {
+      "id": "process-improvement",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "The SOP for turning recurring retro friction into an edit to the procedure that caused it — where the harvest reads from, and the apply-vs-propose rule that decides which fixes an agent may land alone.",
+      "fill": [
+        ".claude/process/improve-the-process.md"
+      ],
+      "consumed_by": [
+        "process-improve"
+      ]
+    },
+    {
+      "id": "gate",
+      "tier": "repo",
+      "requirement": "mandatory",
+      "answers": "How to run lint, build and tests here — by named key — and what green means.",
+      "consumed_by": [
+        "arch-reconcile",
+        "audit",
+        "bug-fix",
+        "component-create",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "mockup",
+        "own",
+        "page-improve",
+        "page-spec",
+        "prd-blueprint",
+        "prd-cancel",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "process-improve",
+        "program-create",
+        "program-decompose",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "program-ship",
+        "push",
+        "qa",
+        "qa-verify",
+        "repo-init",
+        "sidekick",
+        "slice-create",
+        "slice-edit",
+        "slice-refine",
+        "task-implement",
+        "verify"
+      ]
+    },
+    {
+      "id": "git-workflow",
+      "tier": "repo",
+      "requirement": "mandatory",
+      "answers": "Branch names, who merges, which checks are required, how a PR silently fails to merge.",
+      "consumed_by": [
+        "arch-reconcile",
+        "audit",
+        "bug-fix",
+        "component-create",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "mockup",
+        "page-improve",
+        "page-spec",
+        "prd-blueprint",
+        "prd-cancel",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-verify",
+        "process-improve",
+        "program-create",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "program-ship",
+        "push",
+        "qa",
+        "qa-verify",
+        "repo-init",
+        "sidekick",
+        "slice-create",
+        "slice-edit",
+        "slice-refine",
+        "task-implement",
+        "verify"
+      ]
+    },
+    {
+      "id": "commitments",
+      "tier": "repo",
+      "requirement": "mandatory",
+      "answers": "What this product has already promised — the input to a scope verdict.",
+      "consumed_by": [
+        "ask",
+        "audit",
+        "check",
+        "intake",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "program-deliver",
+        "program-shape",
+        "qa",
+        "qa-verify",
+        "route",
+        "slice-create",
+        "slice-refine"
+      ]
+    },
+    {
+      "id": "decisions",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The forks this project already took — the option chosen, the option refused, and the reason — so a later change cannot silently reverse one.",
+      "degrade": "A design or a triage verdict is made with no record of what was already refused, so a settled fork is reopened and the rejected branch ships as if it were new.",
+      "consumed_by": [
+        "ask",
+        "check",
+        "mockup",
+        "prd-blueprint",
+        "prd-design",
+        "prd-verify",
+        "program-deliver",
+        "route"
+      ]
+    },
+    {
+      "id": "feature-areas",
+      "tier": "repo",
+      "requirement": "mandatory",
+      "answers": "The closed set of feature areas an issue can be filed against, and how each maps to the tracker's project for it.",
+      "consumed_by": [
+        "bug-create",
+        "check",
+        "idea-create",
+        "intake",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "prd-create",
+        "prd-fill",
+        "prd-implement",
+        "prd-verify",
+        "program-decompose",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "route",
+        "sidekick",
+        "slice-create",
+        "slice-refine",
+        "task-create"
+      ]
+    },
+    {
+      "id": "languages",
+      "tier": "repo",
+      "requirement": "mandatory",
+      "answers": "Which language contracts apply, and therefore which implementation lanes run.",
+      "consumed_by": [
+        "audit",
+        "bug-fix",
+        "bug-reproduce",
+        "connector-build",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "mockup",
+        "page-improve",
+        "page-spec",
+        "prd-blueprint",
+        "prd-design",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "process-improve",
+        "program-deliver",
+        "push",
+        "repo-init",
+        "task-implement",
+        "verify"
+      ]
+    },
+    {
+      "id": "planning-model",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The planning hierarchy, the durable-vs-versioned rule, the PRD state machine.",
+      "degrade": "The PRD lifecycle commands do not run; bug/task work is unaffected.",
+      "consumed_by": [
+        "ask",
+        "audit",
+        "check",
+        "component-create",
+        "intake",
+        "prd-blueprint",
+        "prd-cancel",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "program-create",
+        "program-decompose",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "program-ship",
+        "push",
+        "route",
+        "sidekick",
+        "slice-create",
+        "slice-edit",
+        "slice-refine",
+        "task-implement",
+        "unblock",
+        "verify"
+      ]
+    },
+    {
+      "id": "entity-model",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Where each planning entity lives in this repository (the file, register or tracker project for each rung of the shared planning ladder) and local worked examples. What each entity IS, and the order to test for it, ships with the tier as `process-planning-ladder`.",
+      "degrade": "The classifying commands (route, intake, check) still walk the shared planning ladder, but cannot name where each entity lives here or give local examples; the commands that author an entity require it.",
+      "consumed_by": [
+        "ask",
+        "check",
+        "component-create",
+        "intake",
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "program-create",
+        "program-decompose",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "program-ship",
+        "route",
+        "slice-create",
+        "slice-edit",
+        "slice-refine",
+        "unblock"
+      ]
+    },
+    {
+      "id": "product-vision",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "What this product is for, and what differentiates it — the input to a PRD's framing.",
+      "degrade": "prd:create cannot run; nothing else is affected.",
+      "consumed_by": [
+        "ask",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "mockup",
+        "page-spec",
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-plan",
+        "program-create",
+        "program-decompose",
+        "program-deliver",
+        "program-shape",
+        "repo-init",
+        "route",
+        "slice-create",
+        "slice-refine",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "components",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The structural map, for the Component label and path attribution.",
+      "degrade": "The Component label is skipped rather than guessed.",
+      "consumed_by": [
+        "arch-reconcile",
+        "audit",
+        "bug-create",
+        "bug-reproduce",
+        "check",
+        "component-create",
+        "idea-create",
+        "intake",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-verify",
+        "program-decompose",
+        "program-shape",
+        "push",
+        "route",
+        "slice-create",
+        "slice-refine",
+        "task-create",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "programs",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The program register and each program's own narrative — the authored rank work inherits, the bar a program is proved against, and the record of what each delivery cycle did.",
+      "degrade": "The Program label is the literal `none`, and a program has nowhere to carry its bar or its delivery log.",
+      "consumed_by": [
+        "check",
+        "intake",
+        "own",
+        "prd-create",
+        "prd-fill",
+        "program-create",
+        "program-decompose",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "program-ship",
+        "route",
+        "slice-create",
+        "slice-edit",
+        "slice-refine",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "codegen",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "What is generated here and which command regenerates it.",
+      "degrade": "No regeneration step runs in the wave gate.",
+      "consumed_by": [
+        "bug-fix",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "page-improve",
+        "prd-blueprint",
+        "prd-design",
+        "prd-implement",
+        "prd-plan",
+        "program-deliver",
+        "push",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "ui-contracts",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Page structure, the detail-page contract, the taste bar.",
+      "degrade": "The UI conformance gate is skipped.",
+      "consumed_by": [
+        "audit",
+        "mockup",
+        "own",
+        "page-improve",
+        "page-spec",
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "verify"
+      ]
+    },
+    {
+      "id": "mockup-conventions",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Where mockups are written in this repository, which of the two tiers it can mount, how a state is addressed and a flow clicked through, and the design guidelines a mockup here must follow.",
+      "degrade": "The mockup command still runs every generic rule in `process-design-fidelity` — the reference, real tokens, a rendered critique and a human gate — but it has to ask where the files go and cannot promote a round to the product's own components, so an approved mockup stays at the explore tier.",
+      "consumed_by": [
+        "mockup",
+        "page-improve",
+        "prd-create",
+        "prd-design"
+      ]
+    },
+    {
+      "id": "architecture",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Architecture narratives carrying a freshness contract.",
+      "degrade": "The arch-doc reconcile advisory is skipped.",
+      "consumed_by": [
+        "arch-reconcile",
+        "bug-fix",
+        "connector-build",
+        "prd-blueprint",
+        "prd-design",
+        "prd-plan",
+        "program-decompose",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "sidekick",
+        "task-implement",
+        "verify"
+      ]
+    },
+    {
+      "id": "feature-maps",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Capability ledgers to reconcile after a code change.",
+      "degrade": "The feature-map reconcile is skipped.",
+      "consumed_by": [
+        "audit",
+        "check",
+        "component-create",
+        "idea-create",
+        "intake",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "prd-blueprint",
+        "prd-cancel",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-verify",
+        "program-decompose",
+        "program-deliver",
+        "program-shape",
+        "push",
+        "qa",
+        "route",
+        "slice-create",
+        "slice-refine",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "docs",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Where the product's user-facing documentation lives (one or more homes, each with audience and visibility), what a page must carry, how it is built, published and verified, and which parts are generated.",
+      "degrade": "Docs impact is not asked at design, no docs gate runs at verify, capabilities are not checked for a page, and the docs audit cannot run.",
+      "consumed_by": [
+        "ask",
+        "audit",
+        "bug-fix",
+        "check",
+        "connector-build",
+        "own",
+        "page-improve",
+        "page-spec",
+        "prd-blueprint",
+        "prd-cancel",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "push",
+        "route",
+        "task-implement",
+        "verify"
+      ]
+    },
+    {
+      "id": "slices",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The planning cuts inside each program — what ships together as one unit, what each promises, the observation that proves it, and the per-cut narrative carrying its bar.",
+      "degrade": "Work is placed against programs directly: no cut tier, so the active-slice ceiling and the proof edges are not read.",
+      "consumed_by": [
+        "check",
+        "component-create",
+        "intake",
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "program-create",
+        "program-decompose",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "program-ship",
+        "repo-init",
+        "route",
+        "slice-create",
+        "slice-edit",
+        "slice-refine"
+      ]
+    },
+    {
+      "id": "journeys",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "How a persona gets a whole job done end to end, and which surfaces that path crosses.",
+      "degrade": "A PRD is framed from its capability alone, with nothing checking that the whole path still works.",
+      "consumed_by": [
+        "audit",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "program-decompose",
+        "program-shape",
+        "qa",
+        "qa-verify"
+      ]
+    },
+    {
+      "id": "domain-model",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The meta-model the product's own data obeys — the types, attributes and relations a change has to stay consistent with.",
+      "degrade": "A design may invent domain vocabulary the product already names differently.",
+      "consumed_by": [
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "program-decompose",
+        "program-shape"
+      ]
+    },
+    {
+      "id": "api-contract",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The interface other people depend on, and the rules a new endpoint or method must follow to fit it.",
+      "degrade": "API shape is decided per-PRD, so the surface drifts between authors.",
+      "consumed_by": [
+        "audit",
+        "prd-blueprint",
+        "prd-design",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "push",
+        "sidekick"
+      ]
+    },
+    {
+      "id": "file-conventions",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Where a new file goes, which types of file exist, and what each type must carry.",
+      "degrade": "A new document lands wherever its author put it, and no validator can type it.",
+      "consumed_by": [
+        "arch-reconcile",
+        "audit",
+        "component-create",
+        "connector-build",
+        "mockup",
+        "page-improve",
+        "page-spec",
+        "prd-blueprint",
+        "prd-cancel",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "process-improve",
+        "program-create",
+        "program-deliver",
+        "program-demonstrate",
+        "program-prove",
+        "program-shape",
+        "program-ship",
+        "repo-init",
+        "slice-refine",
+        "verify"
+      ]
+    },
+    {
+      "id": "permissions",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The authorization model — who may do what, where that is enforced, and how a new capability is granted.",
+      "degrade": "A change touching access control is designed without the model it has to fit.",
+      "consumed_by": [
+        "audit",
+        "prd-blueprint",
+        "prd-design",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "program-deliver",
+        "sidekick"
+      ]
+    },
+    {
+      "id": "security",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The security posture a change must keep — transport encryption, authentication (who the caller is and how that is proven), the trust boundaries (what sits behind the gateway and what is reachable directly), where secrets live, and how a new interface is secured before it ships.",
+      "degrade": "A change that adds or alters an interface is built without the transport, authentication and trust-boundary rules it has to meet, so a plaintext or unauthenticated path is found in review or in production.",
+      "consumed_by": [
+        "audit",
+        "bug-fix",
+        "prd-blueprint",
+        "prd-design",
+        "prd-implement",
+        "prd-plan",
+        "prd-verify",
+        "task-implement",
+        "verify"
+      ]
+    },
+    {
+      "id": "resilience",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "What the system owes when things fail — the failure behaviour, limits and recovery a change must preserve.",
+      "degrade": "Failure behaviour is not part of a PRD's framing, so it is discovered in production.",
+      "consumed_by": [
+        "bug-fix",
+        "prd-blueprint",
+        "prd-create",
+        "prd-design",
+        "prd-fill",
+        "prd-plan",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "dev-environment",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "How to bring the software up locally, know it is up, and drive it — what a reproduction and a browser pass both need before either can start.",
+      "degrade": "A fix is proven by tests alone; nothing is driven, so a surface regression ships green.",
+      "consumed_by": [
+        "ask",
+        "audit",
+        "bug-fix",
+        "connector-build",
+        "knowledge-bootstrap",
+        "knowledge-describe",
+        "mockup",
+        "own",
+        "page-improve",
+        "prd-implement",
+        "prd-verify",
+        "qa",
+        "qa-verify",
+        "repo-init",
+        "sidekick",
+        "unblock",
+        "verify"
+      ]
+    },
+    {
+      "id": "operations",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Where the software runs, how to reach a running instance safely, and where its logs and signals are.",
+      "degrade": "A question about live behaviour cannot be answered from the repo — the run is asked about rather than observed.",
+      "consumed_by": [
+        "audit",
+        "own",
+        "program-deliver",
+        "qa"
+      ]
+    },
+    {
+      "id": "release-artifacts",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "How someone outside the project obtains a released artifact, and what a newly published one has to add there before anyone can pull it.",
+      "degrade": "A newly published artifact is listed nowhere a consumer can reach it — the release is announced with no path to obtain it.",
+      "consumed_by": [
+        "connector-build"
+      ]
+    },
+    {
+      "id": "audit-profile",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "What an audit of this software checks, where its rolling record is kept, and which ground is next due for one.",
+      "degrade": "audit cannot run: there is no checklist to partition, no record to re-verify against, and nothing that says which area is due.",
+      "consumed_by": [
+        "audit",
+        "mockup",
+        "page-improve",
+        "prd-create",
+        "prd-design",
+        "prd-implement",
+        "prd-verify",
+        "qa",
+        "qa-verify"
+      ]
+    },
+    {
+      "id": "runtime-contracts",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "The subsystem contracts a change must obey at run time — the engines, plugin SDKs and data paths this software is built around.",
+      "degrade": "A subsystem change is written against its code alone, with no statement of what it must keep true.",
+      "consumed_by": [
+        "bug-fix",
+        "connector-build",
+        "prd-blueprint",
+        "prd-design",
+        "prd-implement",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "tracker-identity",
+      "tier": "repo",
+      "requirement": "mandatory",
+      "answers": "Which issue tracker this repo files into: its key prefix, its saved views and their precedence, the state-type grouping it exposes, which lane label means this repo, and how it is reached.",
+      "consumed_by": [
+        "arch-reconcile",
+        "audit",
+        "bug-create",
+        "bug-fix",
+        "check",
+        "component-create",
+        "idea-create",
+        "page-improve",
+        "prd-implement",
+        "prd-verify",
+        "program-deliver",
+        "program-prove",
+        "program-ship",
+        "push",
+        "qa",
+        "qa-verify",
+        "repo-init",
+        "sidekick",
+        "task-create",
+        "task-implement",
+        "unblock",
+        "verify"
+      ]
+    },
+    {
+      "id": "retro-corpus",
+      "tier": "repo",
+      "requirement": "optional",
+      "answers": "Where a run retro is written, so the improvement loop has something to harvest.",
+      "degrade": "an execute command finishes without writing a retro, and process:improve has no corpus to read.",
+      "consumed_by": [
+        "bug-fix",
+        "prd-implement",
+        "process-improve",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "process-feature-reconcile",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "How a code change reconciles the feature capability ledgers it touches, and what the coverage ratchet holds.",
+      "fill": [
+        ".claude/process/feature-doc-reconcile.md"
+      ],
+      "consumed_by": [
+        "prd-implement",
+        "push",
+        "task-implement"
+      ]
+    },
+    {
+      "id": "rubric-negative-control",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "What a test has to prove before it counts: it fails when the thing it guards is broken.",
+      "fill": [
+        ".claude/rubrics/negative-control.md"
+      ],
+      "consumed_by": []
+    },
+    {
+      "id": "rubric-independent-verification",
+      "tier": "shared",
+      "requirement": "mandatory",
+      "answers": "What an independent verification has to show before a status may flip: reachability from a fresh session, not the author's word.",
+      "fill": [
+        ".claude/rubrics/independent-verification.md"
+      ],
+      "consumed_by": [
+        "qa-verify"
+      ]
+    }
+  ]
+}

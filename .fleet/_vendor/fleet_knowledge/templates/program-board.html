@@ -1,0 +1,70 @@
+<meta charset="utf-8">
+<!-- THE ONE LINE THAT MAKES THIS PAGE A PHONE PAGE. Without it a phone lays the document out
+     on the ~980px legacy viewport and scales the result down, so the `(max-width:40rem)` layout
+     `fleet.css` carries (the nav sheet, the folded tables) never fires on a real device while a
+     desktop browser narrowed to 390px fires it — which is exactly how it stayed unnoticed: every
+     "still lays out at 390px" check passed and every phone showed the desk. Measured 2026-09-13
+     across both shells; fixed in both because the two share their style and would otherwise
+     disagree about what a narrow screen is. `initial-scale=1` and nothing more: no
+     `maximum-scale`, no `user-scalable=no` — pinch-zoom is the reader's, not the page's. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<!--
+  The program board, as ONE SELF-CONTAINED FILE. No server, no fetch, no network beyond the
+  webfont link: the payload is baked into `<script id="boarddata">` at generation time and the
+  file works from `file://` in a repository that has no Fleet deployment. That is what
+  `fleet-knowledge` is for, and it is why this package is stdlib-only.
+
+  IT SHARES ITS STYLE AND ITS RENDERER WITH THE DEPLOYED APP, and shares them as FILES rather
+  than as copies: `__STYLE__` is `fleet.css` and `__SCRIPT__` is `board.js`, inlined here by
+  `fleet_knowledge/board.py`, and fleet-service serves those same two files to the app that
+  fetches from `/api/board`. The ONLY difference between the two pages is where the payload
+  comes from — `Board.start({load})`, at the bottom of this file. Nothing else. A second copy
+  of either file is how this page and that one drift, and drift in the state colours is not
+  cosmetic: they are the vocabulary.
+
+  Placeholders: `__DATA__` (the payload), `__TITLE__` (masthead + tab title), `__INTENT_TAB__`
+  (the first view's label), `__STYLE__`, `__SCRIPT__`. Pass `--template` to swap the look
+  wholesale; a replacement owes the first three, and gets the shared style and renderer
+  substituted into it if it asks for them.
+
+  What this page may never show, by construction and not by omission: a date, a duration, a
+  rate, a projection, a velocity or a "what fits" estimate. Progress is COUNTS — "3 of 7
+  slices done" — ordering is dependency depth or a human's authored rank, and the segmented
+  bar is geometry with a counted label, never a percentage of progress.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>__STYLE__</style>
+<header class="mast"><div class="wrap">
+  <div class="eyebrow">
+    <span>Derived from the program, slice and PRD registers</span>
+    <span>No dates &middot; no estimates &middot; no capacity</span>
+  </div>
+  <h1>__TITLE__</h1>
+  <nav class="tabs">
+    <!-- ONE TAB WHERE THERE WERE TWO. "Programs" and the corpus's own "__INTENT_TAB__" home
+         view used to be separate routes (`board`, `next`); the flat cross-program finding list
+         folded into this list's own drill-in and its ordering became Reorder mode (present only
+         where a host injects it — never here, in the standalone page), so there is one list and
+         one tab for it, labelled the corpus's own way. -->
+    <button class="tab" data-go="board">__INTENT_TAB__</button>
+    <button class="tab" data-go="deps">Dependencies</button>
+    <button class="tab" data-go="commands">Agents</button>
+    <!-- NO GLOSSARY TAB (2026-10-20). Every word the corpus defines carries its definition as
+         hover text where it stands (`term()`), so there is no page to go to; the deployed app
+         explains each kind of knowledge on its Knowledge tab, which needs a server and so is not
+         here either. A bookmarked `#glossary` is re-addressed to that route (`canon`). -->
+  </nav>
+</div></header>
+<div class="wrap"><main id="main"></main></div>
+<script id="boarddata" type="application/json">__DATA__</script>
+<script>__SCRIPT__</script>
+<script>
+/* The seam, standalone side: the payload is already here, so `load` hands it straight back.
+   The deployed app passes a `fetch` instead and every view above is identical. Going through
+   `start` rather than calling `boot` directly is deliberate — one entry point, so the two
+   pages cannot acquire different startup behaviour. */
+Board.start({ load: () => JSON.parse(document.getElementById("boarddata").textContent) });
+</script>

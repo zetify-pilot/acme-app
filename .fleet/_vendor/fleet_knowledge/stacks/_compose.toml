@@ -1,0 +1,40 @@
+# How conventional targets compose across stack profiles. Read by `fleet_knowledge.stacks`.
+#
+# Every conventional target a profile declares renders as one sub-target per stack
+# (`lint-dotnet`, `lint-node-vue`) and the conventional name lists them as prerequisites, so a
+# command calls one name whatever the stacks. Two rules on top of that, both about meaning, not
+# about any one stack:
+
+# A target BUILT FROM other conventional targets: rendered whenever at least one of them is,
+# and depending on exactly the ones that exist. No profile declares these itself.
+[built_from]
+# every suite — the CI equivalent
+test = ["test-unit", "test-db", "test-e2e"]
+# the fast mechanical guards before a push: static checks only, never a test suite
+preflight = ["lint", "typecheck"]
+
+# Targets whose per-stack recipes run AT ONCE, not one after another: a foreground dev loop
+# never finishes, so the next stack's would never start.
+[together]
+targets = ["dev"]
+
+# The release's supply-chain targets a profile may declare in `[quality]`. Not conventional
+# targets (no command calls them); the CI template's release job does.
+[quality]
+vuln = "the dependency vulnerability scan: fails on a high or critical advisory"
+sbom = "the CycloneDX SBOM of every stack, under out/sbom/"
+licenses = "the third-party licence report of every stack, under out/licenses/"
+
+# The CI workflow template (`render_ci`): one job per entry, each running the listed targets
+# that exist, in order; a job with none is left out. The release job runs only on a `v*` tag
+# and uploads `artifacts`. A final job named `ci` aggregates them all.
+[ci]
+release_job = "release"
+artifacts = "out/"
+
+[ci.jobs]
+lint = ["lint", "typecheck"]
+test = ["test-unit", "test-db"]
+build = ["build"]
+e2e = ["test-e2e"]
+release = ["vuln", "sbom", "licenses"]

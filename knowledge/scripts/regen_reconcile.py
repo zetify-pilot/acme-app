@@ -261,22 +261,39 @@ def reconcile(root: Path, base: str, dry_run: bool) -> Outcome:
                 f"git merge failed without conflicts (a hook?): {merged.stderr.strip() or merged.stdout.strip()}"
             )
         real: list[str] = []
+        derived_failed: list[str] = []
         for path in conflicts:
             if path in derived:
                 # The driver is registered (derived_paths checked) and still left a conflict —
-                # the generator itself failed. Not text-mergeable, not ours to guess.
-                restore(git, head_before)
-                raise ReconcileError(f"regen driver left `{path}` conflicted — the generator failed; nothing changed")
+                # the generator itself failed (missing toolchain in the merge-driver archive,
+                # a broken command, …). Not text-mergeable and not ours to guess — but this IS
+                # conflict-as-work, not "could not run": exit 2 left the PR CONFLICTING with
+                # only an evidence comment and no owner. Exit 1 names the path so
+                # the fleet re-dispatches the branch's owner to regenerate or rebase.
+                derived_failed.append(path)
+                continue
             if path in gitlinks:
                 if resolve_gitlink(git, path) is None:
                     real.append(path)
                 continue
             real.append(path)
-        if real:
+        if real or derived_failed:
             restore(git, head_before)
             out.result = "conflict"
-            out.conflicts = real
-            out.detail = "conflicts outside derived paths — this is work, not a reconcile"
+            out.conflicts = sorted(real + derived_failed)
+            if derived_failed and not real:
+                out.detail = (
+                    "regen driver left derived path(s) conflicted — the generator failed; "
+                    "route as work so an owner regenerates or rebases: "
+                    + ", ".join(f"`{p}`" for p in sorted(derived_failed))
+                )
+            elif derived_failed:
+                out.detail = (
+                    "conflicts outside derived paths — this is work, not a reconcile "
+                    f"(also regen-failed: {', '.join(sorted(derived_failed))})"
+                )
+            else:
+                out.detail = "conflicts outside derived paths — this is work, not a reconcile"
             return out
         committed = git.run("commit", "--no-edit", check=False)
         if committed.returncode != 0:
