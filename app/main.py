@@ -37,6 +37,11 @@ _tasks: dict[int, Task] = {}
 _next_id = 1
 
 
+@app.get("/health")
+def health() -> dict[str, bool]:
+    return {"ok": True}
+
+
 @app.get("/tasks")
 def list_tasks() -> list[Task]:
     # Finished tasks sort last; Python's stable sort keeps each group in
