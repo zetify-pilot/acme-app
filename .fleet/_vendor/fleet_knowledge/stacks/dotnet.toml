@@ -1,0 +1,69 @@
+# .NET (C#). Recipes assume the SDK's own tools: `dotnet format`, `dotnet build`, `dotnet test`
+# with xUnit traits for the lanes (`[Trait("Category", "Integration")]`, `"E2E"`).
+id = "dotnet"
+title = ".NET (C#)"
+contract = "contracts/dotnet.md"
+
+# Ordered: the first rule that matches decides where the stack lives (its `root`).
+[[detect]]
+files = ["*.slnx", "*.sln"]
+[[detect]]
+files = ["*.csproj"]
+[[detect]]
+files = ["global.json"]
+
+# The project `make dev` runs: the first ASP.NET Core project.
+[vars.DOTNET_DEV_PROJECT]
+find = ["*.csproj"]
+contains = "Microsoft.NET.Sdk.Web"
+value = "dir"
+default = "{root}"
+
+# The solution the SBOM and the licence report read.
+[vars.DOTNET_SOLUTION]
+find = ["*.slnx", "*.sln"]
+default = "{root}"
+
+[targets]
+lint = "dotnet format {root} --verify-no-changes"
+lint-fix = "dotnet format {root}"
+typecheck = "dotnet build {root} -warnaserror --nologo"
+build = "dotnet build {root} -c Release --nologo"
+test-unit = 'dotnet test {root} --filter "Category!=Integration&Category!=E2E" --nologo'
+test-db = 'dotnet test {root} --filter "Category=Integration" --nologo'
+test-e2e = 'dotnet test {root} --filter "Category=E2E" --nologo'
+test-one = 'dotnet test {root} --filter "FullyQualifiedName~$(T)" --nologo'
+dev = "dotnet watch --project $(DOTNET_DEV_PROJECT) run"
+
+# A release's supply-chain evidence. NuGetAudit fails the restore on a high or critical advisory.
+# The SBOM and the licence report use the repository's local tools: `.config/dotnet-tools.json`
+# lists `CycloneDX` and `nuget-license`, version-pinned.
+[quality]
+vuln = "dotnet restore {root} -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=high -warnaserror:NU1903,NU1904"
+sbom = [
+  "mkdir -p $(CURDIR)/out/sbom",
+  "dotnet tool restore",
+  "dotnet CycloneDX $(DOTNET_SOLUTION) --output $(CURDIR)/out/sbom --filename dotnet.cdx.json --output-format Json",
+]
+licenses = [
+  "mkdir -p $(CURDIR)/out/licenses",
+  "dotnet tool restore",
+  "dotnet nuget-license --input $(DOTNET_SOLUTION) --output JsonPretty --file-output $(CURDIR)/out/licenses/dotnet.json",
+]
+
+# What CI installs before the make targets run (actions pinned in `_actions.toml`).
+[[ci.setup]]
+uses = "actions/setup-dotnet"
+with = { dotnet-version = "10.0.x" }
+
+[[toolchain]]
+tool = "make"
+name = "make"
+install = "apt:make"
+
+[[toolchain]]
+tool = "dotnet"
+name = ".NET SDK"
+version = "10.0"
+install = "apt:dotnet-sdk-10.0"
+source = "ppa:dotnet/backports"

@@ -1,0 +1,40 @@
+# Home-project names a customer-facing render must not carry — the people, the stack and the
+# subsystems of the repository the tree is authored in, which mean nothing (or the wrong thing)
+# in a repository that receives the tier. Matched case-insensitively, as whole words, in every
+# rendered file the core set ships (commands, the shared tier, the shipped scripts, the board
+# vocabulary JSON) and INSIDE code fences, which is where a worked example carries them.
+#
+# The `command-render` check reads this file beside `vendor_denylist.txt`. The internal
+# issue/requirement/program ids (`ENG-123`, `PG-13`, `RUN-090`, …) are a pattern, not a token,
+# and live in `_render.py` as `_INTERNAL_ID`.
+#
+# The stack's own vocabulary (ENG-18603). A shipping command must reach a repo's language,
+# API contract, codegen and dev environment through the `languages`, `api-contract`, `codegen`
+# and `dev-environment` slots — never by naming one vendor's Go / OpenAPI / React toolchain,
+# which reaches every customer that runs on something else. The tokens below are that
+# toolchain; each is matched as a whole word, so `react` does not fire on `reaction`.
+steffen
+claude.md
+connectord
+agentd
+sqlc
+gofmt
+staticcheck
+mockery
+projection compiler
+metro_crab
+pg13
+go test
+go tests
+go unit
+go db
+golang
+_test.go
+goroutine
+openapi
+react flow
+react
+radix
+vitest
+playwright
+frontend/apps/web

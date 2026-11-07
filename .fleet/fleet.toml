@@ -1,0 +1,52 @@
+# What this repository is, for the fleet that reads it.
+#
+# `fleet.toml` is the ONE repository-side source for how the command tier behaves here.
+# `[fleet.commands] namespace` is the prefix every command is typed under and every
+# cross-reference in the shipped procedures is rewritten to: /fleet:check, and so on.
+# `set` is the depth of the work loop this repository carries (`core` is the generic loop and
+# everything it names). Undeclared, the tier renders under its own namespace and ships whole.
+[fleet]
+# This file's schema version. `fleet commands sync` upgrades the file in place; leave it as it is.
+version = 2
+# The board's command vocabulary: the command each finding offers, the drive box, the shape
+# box and the catalogue. Without it every board row reads "No command".
+board_guidance = ".claude/board-guidance.json"
+
+[fleet.commands]
+namespace = "fleet"
+set = "core"
+
+[fleet.structure]
+# This repository asserts none of the command tree's own doc-parity invariants; add your own
+# `[[fleet.structure.hygiene_doc_parity]]` tables here as the corpus grows.
+hygiene_doc_parity = []
+
+[fleet.targets]
+# What each conventional target runs in THIS repository. The commands name a target (lint, the
+# unit lane, the stack); `fleet commands sync` writes the command below into them. A target left
+# out renders as a refusal the agent stops at — fill in the ones this repository has. A target
+# that takes an argument uses it as {NAME}: `test-one = "go test ./... -run {T}"`.
+lint = 'make lint'
+# lint-fix = ...   # the mechanical auto-fixes, run before hand-fixing lints
+# lint-ci = ...   # the static checks CI runs, where they exceed lint
+# typecheck = ...   # the type checker over the whole tree
+# build = ...   # compile or bundle every artifact
+test = 'make test'
+test-unit = 'make test-unit'
+# test-db = ...   # the lane that needs a database up
+# test-e2e = ...   # the full-stack lane
+# test-one = ...   # one test by name (uses {T})
+# coverage = ...   # the unit lane with the coverage gate
+# pre-commit-dry = ...   # the commit hooks over the working tree, writing nothing
+preflight = 'make preflight'
+# validate-knowledge = ...   # the corpus validators (fleet check and the shipped validate scripts); unset runs Fleet's own checks
+# generate = ...   # regenerate everything derived from a source of truth
+# generate-page-specs = ...   # regenerate the surface specs' derived sections
+# dev = ...   # the full stack with hot reload, in the foreground
+# dev-headless = ...   # the full stack, backgrounded, for a browser pass
+# dev-services = ...   # only the backing services (a database, a queue)
+# dev-stop = ...   # stop whatever dev started
+# seed = ...   # seed the running stack
+# reseed = ...   # reset and seed the running stack
+# agent-loop = ...   # run a named agent loop (uses {LOOP})
+# agent-loop-install = ...   # install a named agent loop's prompt (uses {LOOP}, {PROMPT})

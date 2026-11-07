@@ -4,7 +4,7 @@
 WHY THIS EXISTS. For a `Type:bug`/`task`/`cleanup` PR the de-facto closer is the fleet
 daemon (`_pr_completes_issue` title-shape + closing-keyword attribution → `_drive_to_done`);
 the fleet service's `prd-projection` pass converges PRD issues only, and
-Linear↔GitHub keyword auto-close is dead. A closing keyword
+The tracker's GitHub keyword auto-close is dead. A closing keyword
 (`Closes`/`Fixes`/`Resolves <KEY>`) is the daemon's **strongest attribution signal** — the
 sibling arm of the completing-title forms `fix(ENG-N): …` / `[ENG-N] …`. `verify` §6
 used to compose that keyword inside the merge path (step 4's `push ship`, whose step 5.5
@@ -16,7 +16,7 @@ ordering, not a new closer: the keyword is composed and verified HERE, at arm ti
 `gh pr merge --auto`, so no merge can win the race and `push ship` step 5.5 becomes the
 confirming no-op it always claimed to be. `scripts/validate_automerge_arming.py` pins the
 ordering mechanically; `scripts/validate_bug_close_contract.py` pins that prose never
-re-claims Linear keyword auto-close as the live closer.
+re-claims the tracker's keyword auto-close as the live closer.
 
 A bare `<KEY>` mention (`Refs <KEY>`) is deliberately NOT recognized as a closing keyword
 (/ push.md Step 0): the compose never strips or "upgrades" a `Refs` line — it
@@ -43,12 +43,34 @@ from typing import Any
 # and the ensure no-ops instead of appending `Closes KEY`.
 _CLOSING_RE_TMPL = r"(?<![/:])\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[ \t]+{key}\b"
 
+# The service writes this fenced header at the top of a pull request it opened, naming the
+# issue by its own title. A title like `Resolve ENG-1` must not read as a completing claim,
+# so a parser never sees the block; the append below leaves it where it is.
+_PROVENANCE_START = "<!-- fleet-service:pr-provenance:start -->"
+_PROVENANCE_END = "<!-- fleet-service:pr-provenance:end -->"
+
+
+def strip_provenance(body: str) -> str:
+    """The body without the service-written provenance block, markers inclusive.
+
+    A body with no fence — or with a start and no end — is returned unchanged: half a marker
+    is not a block, and a parser must not be handed text it did not have.
+    """
+    start = body.find(_PROVENANCE_START)
+    if start < 0:
+        return body
+    end = body.find(_PROVENANCE_END, start)
+    if end < 0:
+        return body
+    return body[:start] + body[end + len(_PROVENANCE_END) :]
+
 
 def has_closing_keyword(body: str, key: str) -> bool:
     """True iff the body already carries a GitHub closing keyword for `key`."""
     if not body:
         return False
-    return re.search(_CLOSING_RE_TMPL.format(key=re.escape(key)), body, re.IGNORECASE) is not None
+    scanned = strip_provenance(body)
+    return re.search(_CLOSING_RE_TMPL.format(key=re.escape(key)), scanned, re.IGNORECASE) is not None
 
 
 def missing_closing_keywords(body: str, keys: list[str]) -> list[str]:
@@ -136,9 +158,7 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    print(
-        f"PR #{pr}: Closes {', '.join(missing)} appended and confirmed on the body — safe to arm auto-merge (ENG-9634)."
-    )
+    print(f"PR #{pr}: Closes {', '.join(missing)} appended and confirmed on the body — safe to arm auto-merge.")
     return 0
 
 

@@ -1,0 +1,17 @@
+# The GitHub Actions the CI template uses, pinned by commit SHA (a tag can be moved; a SHA
+# cannot). Update the SHA and the version together.
+[actions."actions/checkout"]
+sha = "3d3c42e5aac5ba805825da76410c181273ba90b1"
+version = "v7"
+
+[actions."actions/setup-dotnet"]
+sha = "a98b56852c35b8e3190ac28c8c2271da59106c68"
+version = "v6.0.0"
+
+[actions."actions/setup-node"]
+sha = "949feb2413d6458794dcd2491c4babbbce0c15c1"
+version = "v7.1.0"
+
+[actions."actions/upload-artifact"]
+sha = "ea165f8d65b6e75b540449e92b4886f43607fa02"
+version = "v4.6.2"

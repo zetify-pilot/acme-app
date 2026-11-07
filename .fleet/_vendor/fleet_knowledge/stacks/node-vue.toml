@@ -1,0 +1,53 @@
+# Vue 3 + Vite + TypeScript, as `npm create vue@latest` lays it out with TypeScript, Vitest,
+# Playwright, ESLint and Prettier. npm with a committed `package-lock.json`.
+id = "node-vue"
+title = "Vue + TypeScript (Node)"
+contract = "contracts/node-vue.md"
+
+[[detect]]
+files = ["package.json"]
+contains = '"vue"'
+
+# Every recipe needs the dependencies; `npm ci` reruns only when the lockfile changes (npm
+# writes `node_modules/.package-lock.json` on every install).
+[deps]
+target = "{root}/node_modules/.package-lock.json"
+needs = ["{root}/package-lock.json"]
+recipe = "cd {root} && npm ci"
+
+[targets]
+lint = "cd {root} && npx --no-install eslint . && npx --no-install prettier --check ."
+lint-fix = "cd {root} && npx --no-install eslint . --fix && npx --no-install prettier --write ."
+typecheck = "cd {root} && npx --no-install vue-tsc --build"
+build = "cd {root} && npm run build"
+test-unit = "cd {root} && npx --no-install vitest run"
+test-e2e = "cd {root} && npx --no-install playwright test"
+test-one = 'cd {root} && npx --no-install vitest run -t "$(T)" --passWithNoTests'
+dev = "cd {root} && npm run dev"
+
+# A release's supply-chain evidence, runtime dependencies only. Tool versions are pinned.
+[quality]
+vuln = "cd {root} && npm audit --audit-level=high"
+sbom = [
+  "mkdir -p $(CURDIR)/out/sbom",
+  "cd {root} && npx --yes @cyclonedx/cyclonedx-npm@6.0.1 --omit dev --output-format JSON --output-file $(CURDIR)/out/sbom/npm.cdx.json",
+]
+licenses = [
+  "mkdir -p $(CURDIR)/out/licenses",
+  "cd {root} && npx --yes license-checker-rseidelsohn@5.0.1 --production --json --out $(CURDIR)/out/licenses/npm.json",
+]
+
+[[ci.setup]]
+uses = "actions/setup-node"
+with = { node-version = "24", cache = "npm", cache-dependency-path = "{root}/package-lock.json" }
+
+[[toolchain]]
+tool = "make"
+name = "make"
+install = "apt:make"
+
+[[toolchain]]
+tool = "node"
+name = "Node.js"
+version = "24"
+install = "nodesource:24"

@@ -77,6 +77,19 @@ def render() -> str:
         return str(m.get("prd", "")).zfill(4)
 
     lines: list[str] = []
+
+    def slice_lines(pm: dict[str, Any]) -> None:
+        members = sorted(prd_by_slice.get(pm["id"], []), key=lambda x: pnum(x[1]))
+        lines.append(f"**{pm['id']} {pm['title']}** — {pm['kind']}" + (f" ({len(members)} PRDs)" if members else ""))
+        for f, m in members:
+            folder = f.parent.name
+            num = pnum(m)
+            prio = f" · {m['priority']}" if m.get("priority") else ""
+            ms = f"  ·  milestone: {m['milestone']}" if m.get("milestone") else ""
+            st = m.get("status", "")
+            lines.append(f"- [{num}](prds/{folder}/prd.md) {m.get('title', '')} — **{st}**{prio}{ms}")
+        lines.append("")
+
     lines.append("---")
     lines.append("type: roadmap")
     lines.append("generated: knowledge/scripts/gen_roadmap.py")
@@ -112,18 +125,22 @@ def render() -> str:
         lines.append(f"### {im['id']} — {im['title']}  ·  {im['kind']}")
         lines.append("")
         for pm in sorted(slice_by_program.get(im["id"], []), key=lambda s: s["id"]):
-            members = sorted(prd_by_slice.get(pm["id"], []), key=lambda x: pnum(x[1]))
-            lines.append(
-                f"**{pm['id']} {pm['title']}** — {pm['kind']}" + (f" ({len(members)} PRDs)" if members else "")
-            )
-            for f, m in members:
-                folder = f.parent.name
-                num = pnum(m)
-                prio = f" · {m['priority']}" if m.get("priority") else ""
-                ms = f"  ·  milestone: {m['milestone']}" if m.get("milestone") else ""
-                st = m.get("status", "")
-                lines.append(f"- [{num}](prds/{folder}/prd.md) {m.get('title', '')} — **{st}**{prio}{ms}")
+            slice_lines(pm)
+
+    # by area → slice → PRD: a slice may live under a feature area instead of a
+    # program. Rendered only when one does, so a corpus with none renders byte for byte as before.
+    by_area: dict[str, list[dict[str, Any]]] = {}
+    for s in slices:
+        if not s.get("program") and s.get("area"):
+            by_area.setdefault(str(s["area"]), []).append(s)
+    if by_area:
+        lines.append("## By area")
+        lines.append("")
+        for area in sorted(by_area):
+            lines.append(f"### {area}")
             lines.append("")
+            for pm in sorted(by_area[area], key=lambda s: s["id"]):
+                slice_lines(pm)
 
     # flat PRD index
     lines.append("## PRD index")

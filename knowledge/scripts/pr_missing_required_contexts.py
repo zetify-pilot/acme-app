@@ -34,7 +34,7 @@ WHY AN EMPTY COMMIT, AND NOT THE TWO CHEAPER-LOOKING LEVERS.
 
 `workflow_dispatch` on the guard, dispatched against the PR head, WOULD work
 mechanically — that was measured, not assumed. Run 33027144305 (event
-`workflow_dispatch`, branch `agent/fix-eng-8321`) produced a check-run named
+`workflow_dispatch`, branch `agent/fix-<key>`) produced a check-run named
 `CI Success`, conclusion `success`, app_id 15368, on head SHA 0fa3b853, and
 GitHub itself linked the run to PR #8963. Branch protection matches a required
 context by (app_id, context name) on the head SHA and applies no event filter,
@@ -56,7 +56,7 @@ Close-and-reopen is the other lever that leaves the head SHA untouched, and
 guards with the correct merge-ref checkout. It costs the same as an empty
 commit — ci.yml is also `on: pull_request` with default types, so it reruns
 either way — while adding a side effect an empty commit does not have: closing
-a PR is a state change the GitHub<->Linear integration reacts to, on issues
+a PR is a state change the tracker's GitHub integration reacts to, on issues
 this fleet's dispatch depends on.
 
 So the empty commit wins on being the only option that changes nothing except
@@ -75,9 +75,13 @@ Exit 2 — usage error.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from typing import Any
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gh_automerge_arm as arm  # noqa: E402  (sibling shipped script)
 
 
 def rollup_context_names(rollup: list[dict[str, Any]]) -> set[str]:
@@ -172,22 +176,37 @@ def actionable_missing(required: list[str], rollup: list[dict[str, Any]]) -> lis
     return missing
 
 
-def fetch_required_contexts(base: str) -> list[str]:
-    out = subprocess.check_output(
-        [
-            "gh",
-            "api",
-            f"repos/{{owner}}/{{repo}}/branches/{base}/protection",
-            "--jq",
-            ".required_status_checks.contexts[]?",
-        ]
-    )
-    return [line for line in out.decode().splitlines() if line.strip()]
+def _run(args: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(args, capture_output=True, text=True)
 
 
-def fetch_rollup(pr: str) -> list[dict[str, Any]]:
-    out = subprocess.check_output(["gh", "pr", "view", pr, "--json", "statusCheckRollup"])
-    parsed: dict[str, Any] = json.loads(out)
+def fetch_required_contexts(base: str, run: Any = None) -> list[str] | None:
+    """The base branch's required contexts, or None when they cannot be read.
+
+    Reuses `gh_automerge_arm.resolve_required_contexts`, so a 403 on the
+    admin-scoped `/protection` read (a GitHub App token gets "Resource not
+    accessible by integration") degrades to the embedded `.protection` summary
+    on `branches/<base>` plus the repo rulesets instead of crashing. Its
+    "undetermined" answer names no checks; here it would read as "nothing
+    required" and skip the check silently, so an unreadable set is reported as None and the caller warns and exits 0.
+    """
+    contexts, source = arm.resolve_required_contexts(base, run or _run)
+    if source == "undetermined":
+        return None
+    return contexts
+
+
+def fetch_rollup(pr: str, run: Any = None) -> list[dict[str, Any]] | None:
+    """The PR's status-check rollup, or None when the PR read failed or was refused."""
+    proc = (run or _run)(["gh", "pr", "view", pr, "--json", "statusCheckRollup"])
+    if proc.returncode != 0:
+        return None
+    try:
+        parsed = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
     return list(parsed.get("statusCheckRollup") or [])
 
 
@@ -198,7 +217,30 @@ def main() -> int:
     pr = sys.argv[1]
     base = sys.argv[2] if len(sys.argv) == 3 else "main"
 
-    missing = actionable_missing(fetch_required_contexts(base), fetch_rollup(pr))
+    # Exit codes: 0 = nothing to do, OR the policy/PR could not be read (a loud
+    # stderr warning, never a traceback); 1 = every printed line is a required
+    # check that structurally cannot get a check-run (push.md Precondition 2
+    # answers that with an empty commit, so it must NEVER mean "unreadable");
+    # 2 = usage.
+    required = fetch_required_contexts(base)
+    if required is None:
+        print(
+            "[pr_missing_required_contexts] WARNING: required status checks unreadable "
+            f"for base {base!r} (protection, embedded summary and rulesets all failed) — "
+            "skipping the missing-context check; not treating this as missing checks.",
+            file=sys.stderr,
+        )
+        return 0
+    rollup = fetch_rollup(pr)
+    if rollup is None:
+        print(
+            f"[pr_missing_required_contexts] WARNING: could not read PR {pr}'s status-check "
+            "rollup (gh pr view failed or was refused) — skipping the missing-context check; "
+            "not treating this as missing checks.",
+            file=sys.stderr,
+        )
+        return 0
+    missing = actionable_missing(required, rollup)
     if not missing:
         return 0
     for context in missing:

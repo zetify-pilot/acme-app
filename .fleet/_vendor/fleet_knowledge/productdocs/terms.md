@@ -1,0 +1,59 @@
+---
+title: Terms
+kind: reference
+for: [everyone]
+summary: "The planning and product words the docs mark as terms, each in one sentence."
+---
+
+- **acceptance criterion**: One line of a PRD that states something the running product must do, written so it can be shown to pass or fail.
+- **API key**: A key you create in Settings that lets your own tools, such as a terminal agent, call Fleet as you.
+- **audit**: A check of a whole stretch of the product against one checklist, such as security or UI, that files what it finds as issues.
+- **box shell**: A terminal on a machine itself, outside any session, for looking at its disks, logs or processes.
+- **capability**: One concrete thing the product lets a person do, small enough to check at any time and still true tomorrow; it sits under one use of a feature, is shipped by a PRD, and never finishes.
+- **check result**: One small file under `knowledge/audits/results/` that records one run of a check: what it looked at, the verdict and the evidence.
+- **Cockpit**: The first page in the sidebar: one list of everything waiting on a person, one row per item, beside everything that was filed.
+- **command**: One step of Fleet's work, such as `bug:fix` or `slice:create`, written as a markdown file that a session runs.
+- **component**: A part of the product you can point at in the code, such as a directory, a service or a set of tables; it is built and never finishes.
+- **decision**: A fork someone took in the knowledge base, recorded with the option chosen, the option refused and the reason.
+- **dock**: The panel beside a large session in the Terminals page that shows the machine's figures and the session's tabs.
+- **feature**: A part of the product a customer would name, such as sign-in or parts management, described by a short brief and a few uses; it never finishes.
+- **feature area**: The planning name for a feature: every slice, PRD, task and bug is filed under one.
+- **feature brief**: The few lines at the top of a feature's page: one summary sentence, the problem it solves, an example of a real person using it, and what it is not.
+- **feature map**: The file under `knowledge/features/` for one feature, holding its brief, its uses and the capabilities under each use.
+- **feature request**: What you file from **Feature request** in the sidebar: something the product should let people do, which Fleet places in a feature before anything is planned.
+- **filing**: A feature request, bug or task a person filed, with its own key, which Fleet takes from there.
+- **Human WIP**: The position an issue moves to when a person takes it by hand, where the fleet starts no work on it until that person hands it back.
+- **intake interview**: The agent that reads a new feature request against what the product already promised, asks where it goes, and asks its filer what it cannot work out.
+- **journey**: How one kind of person gets a whole job done in the product, written from the real reason they open it.
+- **knowledge base**: The `knowledge/` folder a repository keeps beside its code, saying what the product does, what it promised and what is changing.
+- **ledger**: The verifier's list of what a fix has to make true, one line per claim, each proved or left open at the pull request's head.
+- **misfit**: A capability row that fits no use of its feature; it waits under a last `### Misfits (to move)` heading until a person decides where it goes.
+- **mockup**: Clickable pages an agent drew to show a design, attached to the question that asks you to approve it.
+- **outcome**: A lasting property that comes from several components working together and owns no code of its own, such as "an order page loads in under a second".
+- **Parked**: The tracker position that takes an issue away from the fleet, with no reason or date, until someone moves it back.
+- **planning hold**: A note your own session gives the fleet that it is doing a planning step itself, so the fleet does not start the same step.
+- **planning ladder**: The fixed list of tests, in order, that decides what kind of work a request is: bug, idea, component, capability, outcome, feature area, theme, task, PRD, slice or program.
+- **planning mode**: A repository's setting that says whether new work is grouped under programs or under feature areas.
+- **plugin**: A folder Claude Code can load to add commands to a session; Fleet writes its commands into `.fleet/` as one.
+- **PRD**: A piece of work one agent builds in one session, with acceptance criteria, and the only thing whose status anyone writes.
+- **program**: A larger result that two or more slices add up to and none delivers alone, used only by repositories that plan by programs.
+- **promise**: Anything the product committed to that a check can prove: a requirement, a shipped capability or a journey's acceptance criterion.
+- **proof**: The check, named on a program or slice, that shows it works end to end for a real person or on a real screen.
+- **register**: The file under `knowledge/requirements/` that holds one domain's requirements, each with a permanent id.
+- **reproduce stage**: The step after a bug is filed where an agent tries to make it happen and writes a test that fails because of it.
+- **requirement**: One sentence the system must always, or must never, do, kept with a permanent id in a register.
+- **responsible**: The people named on a program as the ones who answer for it.
+- **retro**: What an agent writes after it finishes a run: what went well, what got in the way and what it would change.
+- **route proposal**: The route step's answer to what kind of work a filing is and where it belongs, which a person accepts or sends back.
+- **scenario**: A check the QA agent writes that walks several parts of the product together, each expected result proving one promise.
+- **screening**: The step where a person reads a customer's exact words and approves them before any agent is given them.
+- **seat**: One place on a machine for a session; each seat holds one session at a time.
+- **secret**: A password, token or key Fleet stores for you and hands only to the sessions you attach it to.
+- **session**: An agent you talk to, or a terminal you type into, running on one of your team's machines in its own checkout of a repository.
+- **Shaping**: The planning step that turns a bare program, a name and a sentence, into its narrative, gaps, slices and proof.
+- **slice**: One deliverable with a one-sentence "Done when", which finishes by itself once its PRDs are done and its proof has shipped.
+- **slot**: One question a command asks about the repository it runs in, and the place where the repository answers it.
+- **Snooze**: Fleet's own hold on an item waiting on a person, which takes it out of everyone's Cockpit until the day you chose and then brings it back.
+- **task**: Small, scoped work that needs no design decision and gives nobody anything new to see or use.
+- **use**: One of the main things a person can do with a feature, such as "Sign in with SAML", with one plain sentence and a state read from the work under it.
+- **verifier**: A fresh session that never wrote the work and checks it from the evidence before it counts, such as a fix before it merges.

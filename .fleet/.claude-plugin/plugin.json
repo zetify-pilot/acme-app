@@ -1,0 +1,5 @@
+{
+  "name": "fleet",
+  "description": "The fleet command tier for this repository, written by `fleet commands sync`.",
+  "commands": "./commands/fleet"
+}

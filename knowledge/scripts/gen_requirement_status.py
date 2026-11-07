@@ -79,7 +79,6 @@ REPO = _repo.repo_root()
 # made. Every query, every status rule and every field is unchanged.
 from fleet_knowledge.checks.commitments import status as kkstatus  # noqa: E402
 from fleet_knowledge.checks.commitments.context import Context  # noqa: E402
-from fleet_knowledge.checks.commitments.options import CommitmentsConfig  # noqa: E402
 
 # `requirement_query.py` reaches the register grammar and `need_scope` through `grs.vr`, and
 # asserts it is the SAME module the validator uses — the one-parser property, tested rather
@@ -91,7 +90,9 @@ vr: Any = importlib.util.module_from_spec(_spec)
 sys.modules.setdefault("_grs_vr_reuse", vr)
 _spec.loader.exec_module(vr)
 
-CONFIG = CommitmentsConfig()
+# The validator already read the checkout's `[fleet.commitments]` table; reuse its binding
+# rather than loading the file a second time.
+CONFIG = vr.CONFIG
 K = REPO / "knowledge"
 TARGET = K / "requirement-status.md"
 
@@ -166,7 +167,7 @@ def generated_blockquote() -> list[str]:
         '> a hand-maintained one goes stale silently, and a stale "shipped" is worse than no answer.',
         "> See [`knowledge-model.md`](specs/knowledge-model.md) → *Decisions and requirements*.",
         "",
-        "> **It is not committed** (ENG-12971): every register or `implements:` edit rewrote it, so",
+        "> **It is not committed**: every register or `implements:` edit rewrote it, so",
         "> unrelated changes collided on it by construction. Its `## Component index` is read **as",
         "> data** by `check` / `route` / `prd:create` / `slice:create` — the only component→register",
         "> join — and each of them renders this file first; nothing reads a stored copy.",
@@ -193,8 +194,14 @@ def render() -> str:
     unsettled = [r for r in rows if r.disposition == "open"]
     orphans = [r for r in rows if status[r.id] == "orphaned"]
     violated = [r for r in rows if status[r.id] == "violated"]
-    dangling = sorted({c.requirement for c in claims if c.requirement not in index})
-    dangling_disproofs = sorted({d.requirement for d in disproofs if d.requirement not in index})
+    # Another corpus's row (`<corpus>:<PREFIX>-NNN`, or a bare id in a prefix a sibling owns — both
+    # arrive canonical, qualified) is resolved by the validator in THAT corpus, never here.
+    dangling = sorted(
+        {c.requirement for c in claims if c.requirement not in index and not kkstatus.is_foreign(c.requirement)}
+    )
+    dangling_disproofs = sorted(
+        {d.requirement for d in disproofs if d.requirement not in index and not kkstatus.is_foreign(d.requirement)}
+    )
     drift = [
         (index[c.requirement], c)
         for c in claims
@@ -306,7 +313,7 @@ def render() -> str:
         "`## Known violations` table pointing at the issue that disproves it. That is the route",
         "back the lifecycle otherwise lacks: the PRD cannot walk off `shipped`, but the row's",
         "derived status can read `violated` until the disproof is discharged (the table row is",
-        "removed when the issue closes). Countable, not invisible — ENG-7534.",
+        "removed when the issue closes). Countable, not invisible.",
         "",
     ]
     if violated:

@@ -16,8 +16,8 @@ readers matter: a human at a terminal, and an agent that must not have to parse 
 **Why this exists.** Two failures, one night, on the same table.
 
 The first is a defect the graph asserted and nobody could see: asked *"what must hold
-before PRD 0486 can be built?"*, the register answered with four rows describing the
-plane-side build — the tier 0486's own biggest Non-Goal deletes. Seven of its sixteen
+before this PRD can be built?"*, the register answered with four rows describing the
+plane-side build — the tier the PRD's own biggest Non-Goal deletes. Seven of its sixteen
 claims carried `Needs` edges into that tier, so the graph said the critical-path PRD was
 unsatisfiable until v2 landed, which was false. It survived because the rows are `adopted`
 and *deferred to v2* rather than superseded, so the propagation pass left the edges alone.
@@ -185,7 +185,9 @@ def q_prd(g: Graph, token: str, as_json: bool) -> int:
     unsat: list[dict[str, Any]] = []
     for rid in claimed:
         if rid not in g.rows:
-            items.append({"id": rid, "resolves": False, "needs": []})
+            # A canonical cross-corpus claim (`<corpus>:<PREFIX>-NNN`) is another corpus's row: the
+            # validator resolves it there, and it is no dangling id here.
+            items.append({"id": rid, "resolves": False, "foreign": ":" in rid, "needs": []})
             continue
         r = g.rows[rid]
         needs = g.needs_of(rid, prd)
@@ -205,6 +207,9 @@ def q_prd(g: Graph, token: str, as_json: bool) -> int:
 
     lines = [f"PRD {prd} [{status}] — {len(claimed)} claim(s)", ""]
     for it in items:
+        if it.get("foreign"):
+            lines.append(f"  {it['id']}  (another corpus's row — resolved there, not in this register)")
+            continue
         if not it["resolves"]:
             lines.append(f"  {it['id']}  !! does not resolve to a requirement row")
             continue

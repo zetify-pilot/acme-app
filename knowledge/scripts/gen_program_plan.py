@@ -43,6 +43,12 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _repo  # noqa: E402
 
+# `tomllib` is 3.11. Refuse in one plain sentence on an older interpreter, before the import
+# turns into a raw traceback — this script needs no other part of the package.
+_repo.require_python()
+
+import tomllib  # noqa: E402
+
 REPO = _repo.repo_root()
 K = REPO / "knowledge"
 REGISTRY = K / "specs" / "architecture" / "components.md"
@@ -62,6 +68,19 @@ TERMINAL = {"shipped", "cancelled"}
 CAP_ID_RE = re.compile(r"^CAP-\d{4}$")
 CAP_REF_RE = re.compile(r"CAP-\d{4}")
 PRD_NUM_RE = re.compile(r"\b(\d{4})\b")
+# A repo-qualified reference to ANOTHER corpus's document (`<corpus>:NNNN`,
+# `<corpus>:CAP-NNNN`) — the grammar `fleet_knowledge.corpusref` owns, restated here only because
+# this script runs with a bare `python3` beside the corpus and imports nothing from the package.
+# `:` is a word boundary, so without this the bare patterns above read `<corpus>:NNNN` as this
+# corpus's PRD NNNN.
+# The qualifier is read loosely (any case: `Fleet:NNNN` is still qualified, never local), nothing
+# is required after the id, and a markdown link whose TEXT is qualified is masked whole, target
+# path included.
+QUALIFIED_REF_RE = re.compile(
+    r"(?<![\w./-])(?P<lead>prd:)?(?P<corpus>[A-Za-z][\w-]*):(?P<id>[A-Za-z][A-Za-z0-9]{1,9}-\d+|\d{4})"
+)
+LINK_RE = re.compile(r"\[([^\]\n]*)\]\(([^)\n]*)\)")
+RESERVED_CORPUS_NAMES = frozenset({"prd", "drill", "web", "admin", "tag", "design", "issue", "idea"})
 # `Ships in` marker vocabulary — see knowledge/features/README.md. The planner reads
 # ABSENCE as "build this", so any marker it fails to recognise becomes reported work.
 BUILT_RE = re.compile(r"^\((core|shipped)\)", re.I)
@@ -79,6 +98,51 @@ NEXT_VERB = {
     "prd-drafted": "prd:design",
     "designed": "prd:plan",
 }
+
+
+def own_corpus() -> str:
+    """This corpus's own name, `[fleet.planning] corpus` in `.fleet/fleet.toml`, or ""."""
+    path = REPO / ".fleet" / "fleet.toml"
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return ""
+    table = data.get("fleet", data)
+    planning = table.get("planning") if isinstance(table, dict) else None
+    return str(planning.get("corpus") or "") if isinstance(planning, dict) else ""
+
+
+OWN = own_corpus()
+
+
+def localize(text: str) -> str:
+    """`text` with every OWN-qualified reference (`<own>:NNNN`) rewritten to the bare local id."""
+    if not OWN:
+        return text
+    return QUALIFIED_REF_RE.sub(
+        lambda m: f"{m.group('lead') or ''}{m.group('id')}" if m.group("corpus") == OWN else m.group(0), text
+    )
+
+
+def qualified_refs(text: str) -> list[str]:
+    """Every foreign repo-qualified reference in `text`, as written (`<corpus>:CAP-NNNN`)."""
+    return [
+        f"{m.group('corpus')}:{m.group('id')}"
+        for m in QUALIFIED_REF_RE.finditer(localize(text))
+        if m.group("corpus").lower() not in RESERVED_CORPUS_NAMES
+    ]
+
+
+def mask_qualified(text: str) -> str:
+    """`localize(text)` with every remaining qualified reference blanked, so a local scan never
+    reads one — a link whose text is qualified goes whole, its target path included."""
+    text = localize(text)
+
+    def blank(m: re.Match[str]) -> str:
+        return m.group(0) if m.group("corpus").lower() in RESERVED_CORPUS_NAMES else " " * len(m.group(0))
+
+    text = LINK_RE.sub(lambda m: " " * len(m.group(0)) if qualified_refs(m.group(1)) else m.group(0), text)
+    return QUALIFIED_REF_RE.sub(blank, text)
 
 
 def cells(line: str) -> list[str]:
@@ -145,14 +209,20 @@ def load_capabilities() -> dict[str, dict[str, Any]]:
                 "area": p.stem,
                 "components": comps,
                 "title": re.sub(r"\*\*|`|_", "", cols[1]).split("—")[0].strip()[:58],
-                "prds": PRD_NUM_RE.findall(ships),
+                # LOCAL PRDs only: a qualified `<corpus>:NNNN` is another corpus's PRD and this
+                # planner has no status for it — reading it as NNNN here would be a lie.
+                "prds": PRD_NUM_RE.findall(mask_qualified(ships)),
                 "built": bool(BUILT_RE.match(ships)),
                 "retired": bool(RETIRED_RE.match(ships)),
                 "unverified": anchor == UNVERIFIED,
                 # a REAL anchor (not blank, not em-dash, not UNVERIFIED) — the only
                 # state in which a built-claim is verified against code
                 "anchored": bool(anchor) and anchor not in ("—", "-") and anchor != UNVERIFIED,
-                "needs": CAP_REF_RE.findall(cols[5]) if len(cols) > 5 else [],
+                # A qualified edge stays VISIBLE (it prints in the gap list) but is never walked:
+                # it names no row of this registry, so the closure below skips it.
+                "needs": (CAP_REF_RE.findall(mask_qualified(cols[5])) + qualified_refs(cols[5]))
+                if len(cols) > 5
+                else [],
             }
     return out
 
@@ -172,7 +242,7 @@ def load_prd_depends() -> dict[str, list[str]]:
     for p in sorted((K / "prds").glob("*/prd.md")):
         fm = frontmatter(p.read_text(encoding="utf-8"))
         if num := field(fm, "prd"):
-            out[num.zfill(4)] = [d.zfill(4) for d in listfield(fm, "depends_on")]
+            out[num.zfill(4)] = [localize(d).zfill(4) for d in listfield(fm, "depends_on")]
     return out
 
 
@@ -268,8 +338,8 @@ def main() -> int:
         return 2
 
     prog = programs[pid]
-    requires = prog["requires"]
-    verified_by = [norm_proof(v) for v in prog["verified_by"]]
+    requires = [localize(r) for r in prog["requires"]]
+    verified_by = [norm_proof(localize(v)) for v in prog["verified_by"]]
     # The PRD half of the proof — the only entries the PRD status map and the planning
     # queue can say anything about. A drill is read from its own record below.
     proof_prds = [v for v in verified_by if not kr.is_drill(v)]
@@ -409,7 +479,7 @@ def main() -> int:
     # A `planned` PRD is dispatch-ready when its OWN `depends_on:` entries have all reached a
     # terminal state — an unshipped/uncancelled dependency means the PRD is built on a
     # foundation that isn't there yet. An unknown dependency (missing from pst)
-    # blocks too — fail closed, not open. (Its own Linear `blockedBy` is the tracker's half.)
+    # blocks too — fail closed, not open. (Its own tracker `blockedBy` is the tracker's half.)
     #
     # NOTHING TRANSITIVE. The slice its PRD sits on, and the cuts that slice's
     # `Depends on` names, are order — they never make a PRD whose own dependencies are met

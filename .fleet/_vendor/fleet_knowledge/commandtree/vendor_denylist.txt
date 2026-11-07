@@ -1,0 +1,15 @@
+# Prior-vendor tokens a customer-facing command render must not carry.
+#
+# PRD 0742 D6 / AC-5 (the authoritative list is `fleet-service/tests/vendor_denylist.py`; this
+# stdlib-only package cannot import it, so the tokens are held here as data — the list is a
+# scanner policy, not Python). The `command-render` check reads this file, case-insensitively.
+# Longer tokens first so a hit reports the most specific match.
+#
+# The command prefix is NOT a hit: `/zetify:check`, the key `zetify:verify` and the line
+# `namespace = "zetify"` are blanked before this list runs (`commandsync.without_command_prefix`;
+# owner decision 2026-10-15 — customers type their commands under `zetify`). Nothing else is.
+zetify.ai
+zetify-pg
+zetifyai
+zetify
+tilion

@@ -238,7 +238,7 @@ def _fetch_linked(key: str, pr_number: str | None, repo: str | None) -> list[dic
             raise UnlinkedPRError(
                 f"PR #{pr.get('number')} (head={pr.get('headRefName')!r} "
                 f"title={pr.get('title')!r}) is not linked to {key} "
-                f"(need {key} in head-ref or title); refusing foreign PR (ENG-9984). "
+                f"(need {key} in head-ref or title); refusing foreign PR. "
                 f"Pass --repo <owner/name> if the review target lives on another lane."
             )
         return [pr]
@@ -252,7 +252,7 @@ def _fetch_linked(key: str, pr_number: str | None, repo: str | None) -> list[dic
 
 
 def resolve(key: str, pr_number: str | None = None, repo: str | None = None) -> dict[str, Any]:
-    """Resolve `key` (Linear issue) to its review target, preferring `pr_number` when
+    """Resolve `key` (tracker issue) to its review target, preferring `pr_number` when
     the session already knows the specific PR it is reviewing.
 
     `repo` is a GitHub `owner/name` (the issue's `repo:*` lane). Omitted → the

@@ -9,7 +9,7 @@ them to draft, which any session undoes with `gh pr ready`.
 
 ── WHAT IT KEYS ON ────────────────────────────────────────────────────────────────
 FLEET IS THE AUTHORITY. The gate reads the issue and the newest verify verdict through
-Fleet's tools API with a CI key (`FLEET_CI_KEY`), never through Linear. Nothing a session
+Fleet's tools API with a CI key (`FLEET_CI_KEY`), never through a tracker client. Nothing a session
 can do to GitHub alone satisfies this gate; only a verify run that recorded a row does.
 
 PASS requires, on a gated kind (`bug` / `task` / `cleanup`):
@@ -26,14 +26,21 @@ An older pass under a newer `incomplete` / `blocked` fails. A post-verdict code 
 A verified commit the checkout cannot fetch after one `git fetch` fails closed and names a
 new verify run.
 
-A TRANSIENT READ IS RETRIED. The Fleet read is attempted a bounded number of times with
-backoff on `TimeoutError` / `URLError` / `OSError` before the gate fails closed, so one Fleet
-or network hiccup no longer fails this required check and ejects a green, already-verified PR
-from the merge queue. Every attempt failing still fails closed — never pass-on-error.
+A TRANSIENT READ IS RETRIED. A Fleet read that answers `429` / `502` / `503` / `504`
+("Fleet's database is busy … try again in a moment"), or fails on `TimeoutError` / `URLError` /
+`OSError`, is retried with exponential backoff and jitter (honouring `Retry-After`) for a
+bounded window — 150 s per read, 270 s across the whole run, well inside the step's 8-minute
+ceiling — before the gate fails closed, so a contended Fleet no longer fails this
+required check and ejects a green, already-verified PR from the merge queue. Each retry is
+logged. Every attempt failing still fails closed, with a message that says Fleet was
+UNAVAILABLE — never "no verdict", never pass-on-error. A 4xx other than 429 is never retried.
 
 ── SHAPES THE RULE WAS NEVER ABOUT (all PASS) ─────────────────────────────────────
   * no `ENG-nnnn` resolvable from head ref / title / body — not lane work,
-    **except** an `agent/{fix,task,bug,prd,shape}-*` head ref (fail closed);
+    **except** an `agent/{fix,task,bug,prd,shape}-*` head ref (fail closed). On a tracker
+    whose `tracker-identity` answer says its keys have NO prefix (GitHub Issues) the key is
+    `owner/repo#n` (`#n` qualified with this repository) and no `XYZ-n` key is ever read;
+    a repository with no readable answer keeps the generic `[A-Z][A-Z0-9]{1,9}-n` shape;
   * a body match counts as this PR's issue only under a closing verb;
   * its kind is not gated — `prd` has `PRD Verified`; `audit` / `idea` are not this lane;
   * a knowledge-only planning PR that cites an open gated issue it does not fix;
@@ -57,8 +64,11 @@ Exit 0 = may merge. Exit 1 = blocked, with the remediation flow printed.
 
 from __future__ import annotations
 
+import datetime
+import email.utils
 import json
 import os
+import random
 import re
 import subprocess
 import time
@@ -81,9 +91,35 @@ CLOSED_POSITIONS_CANCELLED = frozenset({"canceled", "cancelled", "duplicate"})
 PASSING_VERDICTS = frozenset({"verified", "merged"})
 
 
-def _tracker_prefix() -> str:
-    """The issue-key prefix this repository's tracker uses, from its own answer."""
-    env = (os.environ.get("LINEAR_KEY_PREFIX") or os.environ.get("TRACKER_KEY_PREFIX") or "").strip().rstrip("-")
+#: The slot line answering "what is the issue-key prefix": the legacy table row
+#: (`| **Key prefix** | `XYZ-` … |`) or the `## Answers` bullet the bootstrap writes
+#: (`- **key-prefix** — XYZ- …`, or `— none: …` on a tracker whose keys carry no prefix).
+#: KEEP IN STEP with `_repo.py`: CI copies this gate ALONE out of the base ref, so it cannot
+#: import `_repo`; `test_shipped_tracker_no_key_prefix` holds the two parsers to one table.
+_KEY_PREFIX_LINE_RE = re.compile(r"\*\*key[ _-]?prefix\*\*\s*(?:\||—|–|:|-)\s*(?P<value>[^\n|]*)", re.IGNORECASE)
+_KEY_PREFIX_VALUE_RE = re.compile(r"(?:^|[\s`])(?P<prefix>[A-Za-z][A-Za-z0-9]*)-(?=[`\s(]|$)")
+_NO_KEY_PREFIX_RE = re.compile(r"`?(?:none|no(?:\s+key)?\s+prefix)\b", re.IGNORECASE)
+
+
+def parse_key_prefix(text: str) -> str | None:
+    """A `tracker-identity` answer's key prefix: `"XYZ"`, `""` for an explicit none, None for no answer.
+
+    `""` and None are different facts: `""` is a tracker whose keys have no prefix (GitHub
+    Issues, `owner/repo#n`), None is a repository that has not answered.
+    """
+    for m in _KEY_PREFIX_LINE_RE.finditer(text or ""):
+        value = m.group("value").strip()
+        if _NO_KEY_PREFIX_RE.match(value):
+            return ""
+        found = _KEY_PREFIX_VALUE_RE.search(value)
+        if found:
+            return found.group("prefix")
+    return None
+
+
+def _tracker_prefix_answer() -> str | None:
+    """This repository's key prefix (see `parse_key_prefix`): the environment, else its own answer."""
+    env = (os.environ.get("TRACKER_KEY_PREFIX") or "").strip().rstrip("-")
     if env:
         return env
     here = os.getcwd()
@@ -95,17 +131,57 @@ def _tracker_prefix() -> str:
         except OSError:
             parent = os.path.dirname(here)
             if parent == here:
-                return ""
+                return None
             here = parent
             continue
-        m = re.search(r"\*\*Key prefix\*\*\s*\|[^`\n]*`?([A-Za-z][A-Za-z0-9]*)-`?", text)
-        return m.group(1) if m else ""
+        return parse_key_prefix(text)
 
 
-TRACKER_PREFIX = _tracker_prefix()
-_KEY_SHAPE = re.escape(TRACKER_PREFIX) if TRACKER_PREFIX else r"[A-Z][A-Z0-9]{1,9}"
+_PREFIX_ANSWER = _tracker_prefix_answer()
+TRACKER_PREFIX = _PREFIX_ANSWER or ""
+#: The repository answered that its tracker's keys carry no prefix: an issue is `owner/repo#n`
+#: (`#n` inside the repository), the key Fleet's GitHub tracker stores. Such a tracker has no
+#: `XYZ-n` key at all, so none is read — a branch name or a slice/program id is never an issue.
+NO_KEY_PREFIX = _PREFIX_ANSWER == ""
 
-ISSUE_KEY_RE = re.compile(rf"\b({_KEY_SHAPE})-(\d{{1,6}})\b", re.IGNORECASE)
+_GITHUB_REPO = r"[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}"
+if NO_KEY_PREFIX:
+    # Not after a word character, `/`, `.`, `&` or `#`: a URL fragment or an HTML entity is no issue.
+    _KEY = rf"(?<![\w./&#-])(?:{_GITHUB_REPO})?#\d{{1,7}}\b"
+    ISSUE_KEY_RE = re.compile(rf"(?<![\w./&#-])(?P<repo>{_GITHUB_REPO})?#(?P<num>\d{{1,7}})\b")
+else:
+    _KEY_SHAPE = re.escape(TRACKER_PREFIX) if TRACKER_PREFIX else r"[A-Z][A-Z0-9]{1,9}"
+    _KEY = rf"\b{_KEY_SHAPE}-\d{{1,6}}\b"
+    ISSUE_KEY_RE = re.compile(rf"\b(?P<prefix>{_KEY_SHAPE})-(?P<num>\d{{1,6}})\b", re.IGNORECASE)
+
+
+def _this_repository() -> str:
+    """`owner/name` of the repository under test: `GITHUB_REPOSITORY`, else `origin`."""
+    env = (os.environ.get("GITHUB_REPOSITORY") or "").strip()
+    if env:
+        return env
+    try:
+        url = subprocess.run(
+            ["git", "remote", "get-url", "origin"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return ""
+    tail = url.rsplit(":", 1)[-1] if url.startswith("git@") else "/".join(url.rstrip("/").split("/")[-2:])
+    tail = tail.removesuffix(".git")
+    return tail if re.fullmatch(_GITHUB_REPO, tail) else ""
+
+
+def _issue_key(m: re.Match[str]) -> str | None:
+    """The canonical key an `ISSUE_KEY_RE` match names, or None when it cannot be named.
+
+    A prefix tracker: `XYZ-n`. A no-prefix tracker: `owner/repo#n`, a bare `#n` qualified with
+    this repository (None when that is unknown — a key is never guessed).
+    """
+    if NO_KEY_PREFIX:
+        repo = m.group("repo") or _this_repository()
+        return f"{repo}#{m.group('num')}" if repo else None
+    return f"{TRACKER_PREFIX}-{m.group('num')}" if TRACKER_PREFIX else m.group(0).upper()
+
 
 AGENT_LANE_KIND_RE = re.compile(
     r"^agent/(?:fix|task|bug|prd|shape)(?:[-/]|$)",
@@ -120,19 +196,41 @@ DISCLAIMER_RE = re.compile(
 DISCLAIMER_LOOSE_RE = re.compile(rf"^[ \t]*{DISCLAIMER_KEY}\s*=\s*(?P<rest>.*?)[ \t]*$", re.MULTILINE)
 
 KNOWLEDGE_ROOT = "knowledge/"
-CITATION_VERB_RE = re.compile(rf"\brefs?\b[^\n]*?\b{_KEY_SHAPE}-\d{{1,6}}\b", re.IGNORECASE)
-CLOSING_VERB_RE = re.compile(
-    rf"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b[^\n]*?\b{_KEY_SHAPE}-\d{{1,6}}\b", re.IGNORECASE
-)
-_CLOSING_VERB = r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)"
-_CLAIM_KEY = rf"\b{_KEY_SHAPE}-\d{{1,6}}\b"
+CITATION_VERB_RE = re.compile(rf"\brefs?\b[^\n]*?{_KEY}", re.IGNORECASE)
+CLOSING_VERB_RE = re.compile(rf"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b[^\n]*?{_KEY}", re.IGNORECASE)
+#: The verbs that govern a CLAIM, in their third-person present form only (`Closes` / `Fixes`
+#: / `Resolves`). The bare and past-participle forms (`close`, `closed`, `fixed`, `resolved`)
+#: are NOT claims: in PR prose they are citations of work already done — a sibling described
+#: as "same class as closed" (or "resolved") is cited, not claimed — and counting the sibling
+#: key beside them refused a one-issue pull request as a batch.
+_CLAIM_VERB = r"(?:closes|fixes|resolves)"
+_CLAIM_KEY = _KEY
 CLAIMED_KEYS_RE = re.compile(
-    rf"(?<![/:\w]){_CLOSING_VERB}:?[ \t]+{_CLAIM_KEY}"
-    rf"(?:[ \t]*(?:,|&|\band\b)[ \t]*(?:{_CLOSING_VERB}:?[ \t]+)?{_CLAIM_KEY})*",
+    rf"(?<![/:\w]){_CLAIM_VERB}:?[ \t]+{_CLAIM_KEY}"
+    rf"(?:[ \t]*(?:,|&|\band\b)[ \t]*(?:{_CLAIM_VERB}:?[ \t]+)?{_CLAIM_KEY})*",
     re.IGNORECASE,
 )
 
 SHAPE_HEAD_REF_RE = re.compile(r"^agent/shape-", re.IGNORECASE)
+#: The service-written provenance header at the top of a Fleet-opened pull request names the issue
+#: by its own (untrusted) title. A title such as `Resolve ENG-1` must not read as a completing
+#: claim, so every body scan sees the body without this fenced block. `place` writes markers
+#: inclusive; half a marker is not a block and is left as it is.
+_PROVENANCE_START = "<!-- fleet-service:pr-provenance:start -->"
+_PROVENANCE_END = "<!-- fleet-service:pr-provenance:end -->"
+
+
+def strip_provenance(body: str) -> str:
+    """The body without the service-written provenance block, markers inclusive."""
+    start = body.find(_PROVENANCE_START)
+    if start < 0:
+        return body
+    end = body.find(_PROVENANCE_END, start)
+    if end < 0:
+        return body
+    return body[:start] + body[end + len(_PROVENANCE_END) :]
+
+
 SHAPE_KNOWLEDGE_PREFIXES = (
     "knowledge/programs/",
     "knowledge/slices/",
@@ -149,8 +247,20 @@ HTTP_TIMEOUT_DEFAULT = 30.0
 #: Fleet/network timeout is not a verdict, so the read is retried a bounded number of times
 #: with backoff; a green, already-verified PR must not be ejected from the merge queue over
 #: one hiccup. Every attempt failing still fails closed — bounded retry, never pass-on-error.
-HTTP_RETRY_ATTEMPTS_DEFAULT = 3
-HTTP_RETRY_BACKOFF_DEFAULT = 0.5
+HTTP_RETRY_ATTEMPTS_DEFAULT = 12
+#: Base delay (seconds) of the exponential backoff: the n-th retry waits about
+#: `base * 2**n`, capped at `HTTP_RETRY_MAX_DELAY`, with jitter so concurrent merge-queue
+#: groups do not retry a contended Fleet in lockstep.
+HTTP_RETRY_BACKOFF_DEFAULT = 2.0
+HTTP_RETRY_MAX_DELAY = 30.0
+#: How long one Fleet read keeps retrying a transient failure before it fails closed.
+#: Fleet's "database is busy" 503 clears within a minute or two; 150 s rides it out.
+HTTP_RETRY_WINDOW_DEFAULT = 150.0
+#: The whole run's retry budget across all of its Fleet reads (issue, search, verdict), so
+#: three back-to-back outages cannot outlast the workflow step's `timeout-minutes: 8`.
+HTTP_RETRY_BUDGET_DEFAULT = 270.0
+#: HTTP statuses that mean "Fleet is momentarily unavailable", never an answer about the PR.
+TRANSIENT_HTTP_STATUSES = frozenset({429, 502, 503, 504})
 
 
 class PrContext(NamedTuple):
@@ -181,10 +291,22 @@ class FleetHttpError(Exception):
 
 
 class FleetTransientError(FleetHttpError):
-    """A Fleet read that failed on a transient network error — retried before failing closed.
+    """A Fleet read that failed transiently (network error, timeout, or 429/502/503/504) —
+    retried before failing closed.
 
     Subclasses `FleetHttpError` so every existing `except FleetHttpError` still catches it once
     the retries are exhausted; the distinct type is what marks it retryable in `_fleet_get`."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status: int | None = None,
+        body: str = "",
+        retry_after: float | None = None,
+    ) -> None:
+        super().__init__(message, status=status, body=body)
+        self.retry_after = retry_after
 
 
 def is_agent_lane_ref(head_ref: str) -> bool:
@@ -212,28 +334,34 @@ def is_knowledge_only_shape_pr(head_ref: str, changed_paths: tuple[str, ...]) ->
 
 
 def extract_issue_key(head_ref: str, title: str, body: str) -> str | None:
-    def key(m: re.Match[str]) -> str:
-        return f"{TRACKER_PREFIX}-{m.group(2)}" if TRACKER_PREFIX else m.group(0).upper()
-
     for source in (head_ref, title):
         m = ISSUE_KEY_RE.search(source or "")
-        if m:
-            return key(m)
+        if m and (k := _issue_key(m)):
+            return k
     for m in CLOSING_VERB_RE.finditer(body or ""):
         km = ISSUE_KEY_RE.search(m.group(0))
-        if km:
-            return key(km)
+        if km and (k := _issue_key(km)):
+            return k
     return None
 
 
 def claimed_issue_keys(head_ref: str, title: str, body: str) -> list[str]:
     """Every issue key this pull request CLAIMS to fix, in order, de-duplicated.
 
-    A claim is a key in the head ref or title, or a key a closing keyword GOVERNS in the body:
-    `Closes KEY`, `Fixes: KEY`, `Resolves KEY, KEY and KEY`. A key that merely shares a line with
-    the word "fix" is a citation, not a claim — "the posture ENG-1's fix took", a cause-ledger
-    `**FIXED**` row, a quoted `/…:bug:fix KEY` command. Reading every key on such a line refused
-    one-issue pull requests as batches.
+    A claim is:
+    - every key in the head ref (the fleet mints `agent/fix-<key>` with exactly one),
+    - in the title: keys a closing keyword GOVERNS (`Fixes A and B`), else at most the
+      *first* key (the subject — `[KEY-1] … after KEY-2 landed` cites KEY-2, it does not
+      claim it),
+    - in the body: keys a closing keyword GOVERNS (`Closes KEY`, `Fixes: KEY`,
+      `Resolves KEY, KEY and KEY`). Only the third-person form (`Closes` / `Fixes` /
+      `Resolves`) governs a claim; the past participle (`closed` / `fixed` / `resolved`)
+      is a citation of work already done and never claims the key beside it.
+
+    A key that merely shares a line with the word "fix" is a citation, not a claim — "the
+    posture KEY-1's fix took", a cause-ledger `**FIXED**` row, a quoted `/…:bug:fix KEY`
+    command, or "same class as closed KEY-2". Reading every key on such a line (or every
+    key in a title) refused one-issue pull requests as batches.
 
     **A PR that claims more than one issue cannot be certified where it stands.** A verify verdict
     is recorded per WORK ITEM (the issue), so a batch PR — one commit per issue, one shared head —
@@ -244,13 +372,24 @@ def claimed_issue_keys(head_ref: str, title: str, body: str) -> list[str]:
     seen: list[str] = []
 
     def remember(m: re.Match[str]) -> None:
-        k = f"{TRACKER_PREFIX}-{m.group(2)}" if TRACKER_PREFIX else m.group(0).upper()
-        if k not in seen:
+        k = _issue_key(m)
+        if k and k.casefold() not in {s.casefold() for s in seen}:
             seen.append(k)
 
-    for source in (head_ref, title):
-        for m in ISSUE_KEY_RE.finditer(source or ""):
-            remember(m)
+    for m in ISSUE_KEY_RE.finditer(head_ref or ""):
+        remember(m)
+
+    title_s = title or ""
+    title_claims = list(CLAIMED_KEYS_RE.finditer(title_s))
+    if title_claims:
+        for claim in title_claims:
+            for m in ISSUE_KEY_RE.finditer(claim.group(0)):
+                remember(m)
+    else:
+        first = ISSUE_KEY_RE.search(title_s)
+        if first:
+            remember(first)
+
     for claim in CLAIMED_KEYS_RE.finditer(body or ""):
         for m in ISSUE_KEY_RE.finditer(claim.group(0)):
             remember(m)
@@ -471,6 +610,53 @@ def _http_retry_backoff() -> float:
     return HTTP_RETRY_BACKOFF_DEFAULT
 
 
+def _env_seconds(name: str, default: float) -> float:
+    raw = (os.environ.get(name) or "").strip()
+    if raw:
+        try:
+            return max(0.0, float(raw))
+        except ValueError:
+            pass
+    return default
+
+
+def _http_retry_window() -> float:
+    return _env_seconds("FLEET_HTTP_RETRY_WINDOW", HTTP_RETRY_WINDOW_DEFAULT)
+
+
+def _http_retry_budget() -> float:
+    return _env_seconds("FLEET_HTTP_RETRY_BUDGET", HTTP_RETRY_BUDGET_DEFAULT)
+
+
+#: Indirections the tests replace with a fake clock, so a 150 s window runs in milliseconds.
+_monotonic = time.monotonic
+_sleep = time.sleep
+_jitter = random.uniform
+
+#: Seconds this process has already spent retrying Fleet reads — the run-wide budget's ledger.
+_retry_spent = 0.0
+
+
+def _parse_retry_after(value: str | None) -> float | None:
+    """`Retry-After` as seconds: delta-seconds or an HTTP-date; None when absent/unparseable."""
+    text = (value or "").strip()
+    if not text:
+        return None
+    try:
+        return max(0.0, float(text))
+    except ValueError:
+        pass
+    try:
+        when = email.utils.parsedate_to_datetime(text)
+    except (TypeError, ValueError):
+        return None
+    if when is None:
+        return None
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=datetime.timezone.utc)
+    return max(0.0, (when - datetime.datetime.now(datetime.timezone.utc)).total_seconds())
+
+
 def _fleet_get_once(url: str, key: str) -> tuple[int, dict[str, Any] | None, str]:
     """One GET `url` with Bearer auth. Returns (status, json-or-None, raw-body)."""
     req = urllib.request.Request(
@@ -488,6 +674,20 @@ def _fleet_get_once(url: str, key: str) -> tuple[int, dict[str, Any] | None, str
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
         status = int(exc.code)
+        if status in TRANSIENT_HTTP_STATUSES:
+            retry_after = _parse_retry_after(exc.headers.get("Retry-After") if exc.headers else None)
+            detail = raw.strip()
+            try:
+                loaded = json.loads(raw) if detail else None
+            except json.JSONDecodeError:
+                loaded = None
+            message = _fleet_message(loaded if isinstance(loaded, dict) else None, raw)
+            raise FleetTransientError(
+                f"Fleet returned {status} at {url.split('?')[0]}: {message}",
+                status=status,
+                body=raw,
+                retry_after=retry_after,
+            ) from exc
     except urllib.error.URLError as exc:
         reason = getattr(exc, "reason", exc)
         raise FleetTransientError(f"could not reach Fleet at {url.split('?')[0]} ({reason})") from exc
@@ -508,24 +708,61 @@ def _fleet_get_once(url: str, key: str) -> tuple[int, dict[str, Any] | None, str
 
 
 def _fleet_get(url: str, key: str) -> tuple[int, dict[str, Any] | None, str]:
-    """GET `url`, riding out a transient network error with a bounded retry, then failing closed.
+    """GET `url`, riding out a transient Fleet failure with bounded backoff, then failing closed.
 
-    A single Fleet/network timeout is not a verdict: retrying it keeps a required check from
-    failing (and a green PR from being ejected from the merge queue) over one hiccup. When
-    every attempt fails, the last error is re-raised as `FleetHttpError`, so the gate still
-    fails closed and never passes on an unreadable read."""
+    A Fleet 429/502/503/504 ("database is busy … try again in a moment"), a timeout or a network
+    error is not a verdict: retrying it keeps a required check from failing (and a green PR from
+    being ejected from the merge queue) over a moment of contention. The
+    n-th retry waits `base * 2**n` (capped, jittered), or the server's `Retry-After` when that is
+    longer, until the per-read window or the run-wide budget runs out. Then the gate fails
+    closed with a message that says Fleet was UNAVAILABLE — a transient failure is never read
+    as "no verdict" and never as a pass. Any other status (a 4xx answer, a 500) returns at once.
+    """
+    global _retry_spent
     attempts = _http_retry_attempts()
-    backoff = _http_retry_backoff()
+    base = _http_retry_backoff()
+    window = _http_retry_window()
+    budget = _http_retry_budget()
+    path = url.split("?")[0]
+    start = _monotonic()
     last: FleetTransientError | None = None
-    for attempt in range(attempts):
-        try:
-            return _fleet_get_once(url, key)
-        except FleetTransientError as exc:
-            last = exc
-            if attempt < attempts - 1:
-                time.sleep(backoff * (2**attempt))
+    made = 0
+    try:
+        for attempt in range(attempts):
+            made = attempt + 1
+            try:
+                return _fleet_get_once(url, key)
+            except FleetTransientError as exc:
+                last = exc
+            if attempt >= attempts - 1:
+                break
+            elapsed = _monotonic() - start
+            remaining = min(window - elapsed, budget - _retry_spent - elapsed)
+            if remaining <= 0:
+                break
+            delay = min(HTTP_RETRY_MAX_DELAY, base * (2**attempt))
+            delay = _jitter(delay / 2, delay) if delay > 0 else 0.0
+            if last.retry_after is not None:
+                delay = max(delay, last.retry_after)
+            delay = min(delay, remaining)
+            print(
+                f"Verify Gate: Fleet transiently unavailable on attempt {made} ({last}); "
+                f"retrying in {delay:.1f}s ({elapsed:.0f}s of {window:.0f}s window used)",
+                flush=True,
+            )
+            _sleep(delay)
+    finally:
+        if last is not None:
+            _retry_spent += _monotonic() - start
     assert last is not None
-    raise FleetHttpError(str(last)) from last
+    elapsed = _monotonic() - start
+    raise FleetHttpError(
+        f"Fleet was unavailable — {made} attempt(s) over {elapsed:.0f}s reading {path} all failed "
+        f"transiently; the last: {last}. This is NOT a missing verdict: nothing about this pull "
+        "request was read. Re-run the check (or re-enqueue the PR) once Fleet recovers.",
+        status=last.status,
+        body=last.body,
+    ) from last
 
 
 def _fleet_message(payload: dict[str, Any] | None, raw: str) -> str:
@@ -829,17 +1066,26 @@ def try_closed_disclaimer(
     )
 
 
-AUDIT_CLOSED_RE = re.compile(r"\bis an? audit issue\b.*\bnot on Fleet's board\b", re.IGNORECASE | re.DOTALL)
+AUDIT_CLOSED_RE = re.compile(
+    r"\bis an? audit issue\b.*(?:"
+    r"\bnot on Fleet's board\b"
+    r"|\bindex holds closed\b.*\ba person['\u2019]s close stays theirs\b"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def is_closed_audit_carrier(exc: FleetHttpError, changed_paths: tuple[str, ...]) -> bool:
-    """A 403 that says "audit issue, seen by the census, closed, not on the board".
+    """A 403 that says "audit issue ... closed", whether Fleet's census never boarded it or a
+    person closed it.
 
     An audit carrier has no verify run by design (`audit` is not bug/task/cleanup), and Fleet
     answers 403 once the issue is closed and off the board, so reading it raised before any
-    escape line was evaluated and ejected armed record PRs from the merge queue. Only THAT
-    answer, and only for a PR whose every changed path is under `knowledge/`, is a non-lane PR;
-    any other 401/403 stays a hard failure.
+    escape line was evaluated and ejected armed record PRs from the merge queue. Only that
+    answer — whether in the older "not on Fleet's board" wording or the newer person-closed
+    "index holds closed ... a person's close stays theirs" wording — and only for a PR whose
+    every changed path is under `knowledge/`, is a non-lane PR; any other 401/403 stays a hard
+    failure.
     """
     if exc.status != 403 or not AUDIT_CLOSED_RE.search(str(exc)):
         return False
@@ -885,7 +1131,7 @@ def main() -> int:
 
     head_ref = os.environ.get("PR_HEAD_REF", "")
     title = os.environ.get("PR_TITLE", "")
-    body = os.environ.get("PR_BODY", "")
+    body = strip_provenance(os.environ.get("PR_BODY", ""))
 
     shape_changed = read_changed_paths()
     exempt, shape_note = is_knowledge_only_shape_pr(head_ref, shape_changed)
@@ -900,7 +1146,7 @@ def main() -> int:
             f"this pull request claims {len(claimed)} issues ({shown}) — a verify verdict is "
             f"recorded per issue, but this gate is ONE check for the whole pull request and cannot "
             f"certify a batch issue by issue. Split it into one pull request per issue; each then "
-            f"carries its own verdict (ENG-16931)."
+            f"carries its own verdict."
         )
 
     key = claimed[0] if claimed else extract_issue_key(head_ref, title, body)
@@ -910,8 +1156,8 @@ def main() -> int:
                 f"head ref `{head_ref}` is an agent lane branch "
                 f"(`agent/fix|task|bug|prd|shape-…`) but no `ENG-nnnn` resolves from the "
                 f"head ref, title, or a closing body verb. That is unverifiable lane work, "
-                f"not a pass (ENG-14453). Rename the branch to carry the issue key "
-                f"(e.g. `agent/task-eng-1234`), or put the key in the title / a "
+                f"not a pass. Rename the branch to carry the issue key "
+                f"(e.g. `agent/task-<key>`), or put the key in the title / a "
                 f"`Fixes`/`Closes`/`Resolves` body line, so this gate can read the issue's "
                 f"verify verdict. Armed auto-merge must not ship agent lane work the "
                 f"verifier has never looked at."

@@ -8,7 +8,7 @@ Reads ownership from the component registry's `owns:` column
 (knowledge/specs/architecture/components.md) and answers by LONGEST-prefix match,
 one line per input path: `<path>\t<component-id>` (or `-` when nothing claims it).
 
-Why this exists: bugs, tasks and audits are Linear-native — no git file, so nothing
+Why this exists: bugs, tasks and audits are tracker-native — no git file, so nothing
 ever connected 81% of issue volume to the component architecture. The issue-creating
 commands call this to derive the `Component` label at CREATE time, which is what makes
 "all work on the audit log, PRD or not" an answerable query.

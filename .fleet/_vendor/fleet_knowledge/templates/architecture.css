@@ -1,0 +1,195 @@
+/* The architecture page's own rules — every class the view emits, and nothing else.
+ *
+ * NO TOKEN IS DECLARED HERE, on the same argument `app.html`'s style block states and
+ * `test_ui.py` holds the shell to: the state colours are the vocabulary, and a page that
+ * redeclares one is lying about it. Every rule composes `fleet.css`'s tokens; a tint is a
+ * `color-mix()` over one of them, which is theme-adaptive by construction — it darkens toward
+ * the surface in light mode and lightens in dark mode, because the surface itself moves.
+ * Dark mode needs no block of its own: the tokens flip underneath these rules.
+ *
+ * THE ACCENT ROLES ARE THE BOARD'S OWN HUES, spent on what they already mean (decision D2):
+ *
+ *   agent  -> `--flight`   the machinery that acts — the build-and-run stack that reasons
+ *   brand  -> `--brass`    the authored surface — the stack a builder writes into, and the
+ *                          governance membrane drawn from the same family (`seal`)
+ *   gnd    -> `--proven`   the living, cited ground — what rises from the customer's systems
+ *   value  -> `--proven`   the outcome axis, outlined rather than filled: it is not components
+ *   edge   -> `--rule-2`   the customer's own systems — dashed, transparent, not our code
+ *
+ * A planned card is DASHED and a proposed one is dashed brass, which is this app's existing
+ * convention for an unconfirmed claim (`st-unregistered`, `rk-derived`) — the key bar names
+ * all three states in words, so the shapes are a second reading and never the only one.
+ */
+
+/* ── the plate: the stack, and the backbone beside it ──────────────────────── */
+
+.arch-plate{display:grid;grid-template-columns:minmax(0,1fr) 18rem;gap:.9rem;align-items:start;
+  margin-top:1rem}
+.arch-stack{display:flex;flex-direction:column;gap:.8rem;min-width:0}
+
+/* ── the key, and the one toggle the page owns ─────────────────────────────── */
+
+.arch-bar{display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;align-items:center;
+  justify-content:space-between;margin-top:.9rem;padding-top:.8rem;border-top:1px solid var(--rule)}
+.arch-keys{display:flex;flex-wrap:wrap;gap:.4rem 1.1rem}
+.arch-k{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--muted)}
+.arch-k svg{flex:none;opacity:.8}
+.arch-sw{width:1.4rem;height:.8rem;border-radius:3px;border:1px solid var(--rule-2);
+  background:var(--surface);flex:none}
+.arch-sw.arch-t{border-style:dashed;background:transparent}
+.arch-sw.arch-new{border-style:dashed;border-color:var(--brass);background:var(--brass-bg)}
+
+/* ── a layer band ──────────────────────────────────────────────────────────── */
+
+.arch-l{background:var(--sunk);border:1px solid var(--rule);border-radius:5px;
+  padding:.85rem;display:flex;flex-direction:column;gap:.5rem;min-width:0}
+.arch-lh{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.arch-l h3{font-size:.9rem;font-weight:700;margin:0;letter-spacing:-.01em}
+.arch-n{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:.62rem;
+  font-variant-numeric:tabular-nums;color:var(--faint);flex:none}
+.arch-ld{font-size:.78rem;line-height:1.5;color:var(--muted);margin:0;max-width:80ch}
+.arch-tag{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  border-radius:999px;padding:.14rem .55rem;border:1px solid var(--rule-2);color:var(--faint)}
+.arch-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(11.5rem,1fr));
+  gap:.5rem;margin-top:.15rem}
+
+/* THE ACCENTS. A tint is a mix toward the surface, so one rule reads correctly in both
+   themes; the heading takes the hue itself and the description stays muted. `core` pairs
+   with `gnd` in the authored file and only adds weight. */
+.arch-l.arch-agent{background:color-mix(in srgb,var(--flight) 7%,var(--surface));
+  border-color:color-mix(in srgb,var(--flight) 30%,var(--surface))}
+.arch-l.arch-agent h3{color:var(--flight)}
+.arch-l.arch-agent .arch-tag{color:var(--flight);border-color:color-mix(in srgb,var(--flight) 30%,var(--surface))}
+.arch-l.arch-brand{background:color-mix(in srgb,var(--brass) 8%,var(--surface));
+  border-color:color-mix(in srgb,var(--brass) 30%,var(--surface))}
+.arch-l.arch-brand h3{color:var(--brass)}
+.arch-l.arch-brand .arch-tag{color:var(--brass);border-color:color-mix(in srgb,var(--brass) 30%,var(--surface))}
+.arch-l.arch-gnd{background:color-mix(in srgb,var(--proven) 9%,var(--surface));
+  border-color:color-mix(in srgb,var(--proven) 36%,var(--surface))}
+.arch-l.arch-gnd h3{color:var(--proven)}
+.arch-l.arch-gnd .arch-tag{color:var(--proven);border-color:color-mix(in srgb,var(--proven) 36%,var(--surface))}
+.arch-l.arch-gnd.arch-core{border-width:2px}
+.arch-l.arch-seal{background:color-mix(in srgb,var(--brass) 8%,var(--surface));
+  border-color:color-mix(in srgb,var(--brass) 30%,var(--surface));
+  border-top:3px solid var(--brass);border-bottom:3px solid var(--brass)}
+.arch-l.arch-seal h3{color:var(--brass)}
+.arch-l.arch-seal .arch-tag{color:var(--brass);border-color:color-mix(in srgb,var(--brass) 30%,var(--surface))}
+/* The two EDGES — the outcome axis and the customer's own systems — are outlined, never
+   filled: neither is product code, and a filled box would claim it is. */
+.arch-l.arch-value{background:transparent;border:2px dashed color-mix(in srgb,var(--proven) 34%,var(--surface))}
+.arch-l.arch-value h3{color:var(--proven)}
+.arch-l.arch-value .arch-tag{color:var(--proven);border-color:color-mix(in srgb,var(--proven) 34%,var(--surface))}
+.arch-l.arch-edge{background:transparent;border:2px dashed var(--rule-2)}
+.arch-l.arch-edge .arch-c{background:transparent;border-style:dashed}
+
+/* ── a card, and its three coverage states ─────────────────────────────────── */
+
+.arch-c{background:var(--surface);border:1px solid var(--rule-2);border-radius:4px;
+  padding:.6rem .65rem;display:flex;flex-direction:column;gap:.25rem;min-width:0}
+.arch-c.arch-t{border-style:dashed;background:transparent}
+.arch-c.arch-new{border-style:dashed;border-color:var(--brass);background:var(--brass-bg)}
+.arch-c h4{display:flex;align-items:center;gap:.45rem;margin:0;font-size:.78rem;
+  font-weight:600;letter-spacing:-.005em;min-width:0}
+.arch-nm{min-width:0;overflow-wrap:anywhere}
+.arch-d{width:.38rem;height:.38rem;border-radius:50%;background:var(--faint);flex:none}
+.arch-c.arch-t .arch-d{background:transparent;border:1px solid var(--faint)}
+.arch-c.arch-new .arch-d{background:var(--brass)}
+.arch-c.arch-new h4{color:var(--brass)}
+.arch-cd{font-size:.72rem;line-height:1.45;color:var(--muted);margin:0}
+.arch-src{font-family:"IBM Plex Mono",monospace;font-size:.6rem;line-height:1.5;
+  color:var(--faint);margin:.2rem 0 0;overflow-wrap:anywhere}
+.arch-src b{font-weight:600;color:var(--muted)}
+.arch-i{margin-left:auto;flex:none;display:inline-flex;align-items:center;justify-content:center;
+  width:1.3rem;height:1.3rem;padding:0;border:0;border-radius:50%;background:none;
+  cursor:pointer;color:var(--faint);opacity:.65}
+.arch-i:hover{opacity:1;color:var(--brass)}
+
+/* ── the two build-and-run stacks ──────────────────────────────────────────── */
+
+.arch-duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));
+  gap:.8rem;align-items:start}
+.arch-col{display:flex;flex-direction:column;gap:.8rem;min-width:0}
+.arch-cap{display:flex;align-items:center;gap:.55rem;margin:0 0 -.2rem .2rem;
+  font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint)}
+.arch-cap i{width:.5rem;height:.5rem;border-radius:2px;display:block;flex:none;background:var(--faint)}
+.arch-cap.arch-agent{color:var(--flight)}
+.arch-cap.arch-agent i{background:var(--flight)}
+.arch-cap.arch-brand{color:var(--brass)}
+.arch-cap.arch-brand i{background:var(--brass)}
+.arch-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.8rem}
+
+/* ── the backbone rail ─────────────────────────────────────────────────────── */
+
+.arch-rail{display:flex;flex-direction:column;gap:.7rem;position:sticky;top:1rem;min-width:0}
+.arch-railcap{margin:0 0 -.1rem .2rem;font-size:.68rem;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--faint)}
+.arch-rail .arch-cards{grid-template-columns:1fr}
+
+/* ── the page's own record ─────────────────────────────────────────────────── */
+
+.arch-foot{font-size:.72rem;color:var(--faint);margin-top:1.2rem;padding-top:.9rem;
+  border-top:1px solid var(--rule);max-width:90ch;line-height:1.6}
+.arch-foot b{color:var(--muted)}
+.arch-foot code{font-size:.92em;color:var(--muted)}
+
+/* ── the info modal ──────────────────────────────────────────────────────────
+ * ONE OVERLAY, COMPOSED LIKE `.wmodal`'s card: same border, same radius, same `--shadow`,
+ * same `ipop` entrance — a second entrance would be a second idiom. The scrim is a literal,
+ * not a token, for the reason `.wmodal-back` states: it must dim the identical amount in both
+ * themes, and no state colour means "obscured". */
+
+.arch-modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
+  padding:1rem}
+.arch-modal-back{position:absolute;inset:0;background:rgba(4,6,11,.55)}
+.arch-modal-card{position:relative;width:min(40rem,100%);max-height:calc(100vh - 2rem);
+  overflow:auto;overscroll-behavior:contain;border:1px solid var(--rule-2);border-radius:5px;
+  background:var(--surface);box-shadow:var(--shadow);animation:ipop .12s ease-out;
+  padding:1.1rem 1.2rem}
+.arch-m-head{display:flex;align-items:flex-start;gap:1rem;margin-bottom:.7rem}
+.arch-m-layer{font-family:Archivo,sans-serif;font-size:.6rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.09em;color:var(--faint);margin:0 0 .2rem}
+.arch-m-name{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;margin:0;min-width:0;
+  overflow-wrap:anywhere}
+.arch-m-one{font-size:.88rem;line-height:1.55;color:var(--ink);margin:0 0 .7rem}
+.arch-m-long p{font-size:.8rem;line-height:1.6;color:var(--muted);margin:0 0 .7rem}
+.arch-m-wait{font-size:.76rem;color:var(--faint);font-style:italic;margin:0 0 .7rem}
+.arch-m-wait.arch-m-bad{color:var(--attn)}
+.arch-m-lab{font-family:Archivo,sans-serif;font-size:.6rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.09em;color:var(--faint);margin:.8rem 0 .3rem}
+.arch-m-paths{font-family:"IBM Plex Mono",monospace;font-size:.72rem;line-height:1.7;
+  color:var(--muted);margin:0;padding:0;list-style:none}
+.arch-m-paths li{padding-left:1rem;position:relative;overflow-wrap:anywhere}
+.arch-m-paths li::before{position:absolute;left:0;top:.25rem;font-size:.5rem}
+.arch-m-paths li.ok::before{content:"\25CF";color:var(--proven)}
+.arch-m-paths li.missing::before{content:"\25CB";color:var(--faint)}
+.arch-m-src{font-family:"IBM Plex Mono",monospace;font-size:.64rem;line-height:1.5;
+  color:var(--faint);margin:.9rem 0 0;padding-top:.7rem;border-top:1px dashed var(--rule);
+  overflow-wrap:anywhere}
+.arch-m-src.arch-m-registry{color:var(--brass)}
+
+/* ── responsive ──────────────────────────────────────────────────────────────
+ * The rail folds under the stack before it gets cramped, at a width of its own; the duo folds
+ * at the app's one phone line, `fleet.css`'s 40rem, which is the width at which the rest of
+ * this app already agrees a page is a phone. The modal lands on the bottom of a phone's
+ * screen, where every other panel in this application lands. */
+
+@media (max-width:64rem){
+  .arch-plate{grid-template-columns:minmax(0,1fr)}
+  .arch-rail{position:static}
+  .arch-rail .arch-cards{grid-template-columns:repeat(auto-fill,minmax(11.5rem,1fr))}
+}
+
+@media (max-width:40rem){
+  .arch-duo{grid-template-columns:minmax(0,1fr)}
+  .arch-modal{align-items:flex-end;padding:.6rem}
+  .arch-modal-card{width:100%;max-height:86vh}
+  /* NO WORD UNDER 12px (the layer tags, counts and the detail sheet's captions were 9.6–9.9px at
+     390px), and the `i` that opens a detail is a 44px target without growing: the 21px glyph
+     keeps its place in the card heading and an invisible square around it takes the tap. */
+  .arch-n,.arch-tag,.arch-src,.arch-cap,.arch-railcap,.arch-m-layer,.arch-m-lab,
+  .arch-m-src{font-size:.75rem}
+  .arch-i{position:relative}
+  .arch-i::after{content:"";position:absolute;left:50%;top:50%;width:2.75rem;height:2.75rem;
+    transform:translate(-50%,-50%)}
+}

@@ -1,0 +1,24 @@
+# Protocol Buffers with the Buf CLI: lint, format and code generation from `buf.gen.yaml`.
+id = "proto"
+title = "Protocol Buffers (Buf)"
+
+[[detect]]
+files = ["buf.yaml", "buf.work.yaml"]
+[[detect]]
+files = ["*.proto"]
+
+[targets]
+lint = "buf lint {root} && buf format {root} --diff --exit-code"
+lint-fix = "buf format {root} -w"
+generate = "cd {root} && buf generate"
+
+[[toolchain]]
+tool = "make"
+name = "make"
+install = "apt:make"
+
+[[toolchain]]
+tool = "buf"
+name = "Buf CLI"
+version = "1.74.0"
+install = "binary:https://github.com/bufbuild/buf/releases/download/v1.74.0/buf-Linux-{arch}"

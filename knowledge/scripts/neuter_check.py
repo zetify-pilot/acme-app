@@ -27,9 +27,9 @@ THE LEDGER is JSON, read from `--ledger <file>` or stdin:
 
     {
       "tests": [
-        {"id": "1", "name": "TestPinPrecheckUsesResolvedIdentity",
+        {"id": "1", "name": "internal/pinning/pinning_test.go::TestPinPrecheckUsesResolvedIdentity",
          "revert": ["internal/pinning/pinning.go"],
-         "run": ["make", "test-one", "T=TestPinPrecheckUsesResolvedIdentity"]}
+         "run": ["go", "test", "./internal/pinning/", "-run", "TestPinPrecheckUsesResolvedIdentity"]}
       ],
       "scopes": [
         {"id": "2", "claim": "correct the overclaim wherever asserted",
@@ -47,6 +47,15 @@ is a failure.
 
 Exit status is 0 only when every named test was green→red→green and every scoped site is
 covered. Any other outcome is a refusal to hand off, named line by line.
+
+THE MACHINE-READABLE RESULT. `--json` prints, beside the human lines, a `results`
+list — one entry per named test: `{"id", "name", "promises", "proved"}`. `proved` is true only
+for green → red → green; a test that stayed green with the fix reverted is `proved: false` (and
+so is one that never ran cleanly), which is how a caller records a test as NOT proven. `promises`
+is read from a bracketed `[<PREFIX>-<n>]` token in the test's own name, so a test
+that covers a promise needs no extra bookkeeping. The verify command hands this list to
+`record_verdict`, where the Quality desk reads it; the implementer's own pass is deliberately
+not recorded, because the party that wrote the code never certifies it.
 """
 
 from __future__ import annotations
@@ -71,6 +80,20 @@ EXIT_USAGE = 2
 _HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 #: A `git grep` line: `<path>:<line>:<text>`. The text may contain colons; the path rarely.
 _GREP = re.compile(r"^(?P<path>.+?):(?P<line>\d+):(?P<text>.*)$", re.DOTALL)
+#: A promise id a test's name carries as a bracketed `[<PREFIX>-<n>]` token — the one interface
+#: that links a neutered test to the promise it proves, read straight from the name so the
+#: verifier writes nothing extra.
+_PROMISE_TOKEN = re.compile(r"\[([A-Z][A-Z0-9]*-\d+)\]")
+
+
+def promises_in(name: str) -> list[str]:
+    """The promise ids a test's name carries in brackets, in order, without duplicates."""
+    found: list[str] = []
+    for match in _PROMISE_TOKEN.finditer(name):
+        token = match.group(1)
+        if token not in found:
+            found.append(token)
+    return found
 
 
 class LedgerError(ValueError):
@@ -106,9 +129,16 @@ class Report:
     neutered: list[str]
     stayed_green: list[str]
     failures: list[str]
+    #: One entry per named test, the machine-readable result the verifier records:
+    #: `{"id", "name", "promises", "proved"}`. `proved` is True only for green → red → green.
+    results: list[dict[str, Any]]
 
     def ok(self) -> bool:
         return not self.stayed_green and not self.failures
+
+    def record(self, claim: TestClaim, proved: bool) -> None:
+        """Append this test's outcome, with the promises its name carries."""
+        self.results.append({"id": claim.id, "name": claim.name, "promises": promises_in(claim.name), "proved": proved})
 
 
 def _git(root: Path, *args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
@@ -180,18 +210,21 @@ def check_test(root: Path, base: str, claim: TestClaim, timeout: int, report: Re
         if not patch.strip():
             report.failures.append(f"{label}: nothing in {claim.revert!r} differs from `{base}` — nothing to neuter")
             print(f"  FAIL {label}: no diff over {claim.revert!r} against {base}")
+            report.record(claim, False)
             return
 
         print(f"  .. {label}: baseline (must be green)")
         if _run_argv(claim.run, root, timeout) != 0:
             report.failures.append(f"{label}: the test is not green at HEAD — fix it before neutering")
             print(f"  FAIL {label}: baseline run was not green")
+            report.record(claim, False)
             return
 
         applied = _git(root, "apply", "-R", input_text=patch)
         if applied.returncode != 0:
             report.failures.append(f"{label}: could not revert the fix: {applied.stderr.strip()}")
             print(f"  FAIL {label}: reverse-apply failed")
+            report.record(claim, False)
             return
         print(f"  .. {label}: neutered (must be red)")
         # The restore runs in `finally` so an interrupt or an error still puts the fix back.
@@ -206,30 +239,37 @@ def check_test(root: Path, base: str, claim: TestClaim, timeout: int, report: Re
                 f"{label}: COULD NOT RESTORE the fix — run `git apply` by hand: {restored.stderr.strip()}"
             )
             print(f"  FAIL {label}: restore failed; the tree is left neutered", file=sys.stderr)
+            report.record(claim, False)
             return
         still = _git(root, "status", "--porcelain", "--", *claim.revert).stdout.strip()
         if still:
             report.failures.append(f"{label}: the tree did not come back clean:\n{still}")
             print(f"  FAIL {label}: tree not restored")
+            report.record(claim, False)
             return
         if neutered_rc == 0:
             report.stayed_green.append(label)
             print(f"  FAIL {label}: still GREEN with the fix reverted — the test proves nothing")
+            report.record(claim, False)
             return
         if neutered_rc == 124:
             report.failures.append(f"{label}: the neutered run timed out — not a clean red")
             print(f"  FAIL {label}: neutered run timed out")
+            report.record(claim, False)
             return
         print(f"  .. {label}: restored (must be green)")
         if _run_argv(claim.run, root, timeout) != 0:
             report.failures.append(f"{label}: the test is not green again after restoring the fix")
             print(f"  FAIL {label}: restore run was not green")
+            report.record(claim, False)
             return
     except LedgerError as exc:
         report.failures.append(f"{label}: {exc}")
         print(f"  FAIL {label}: {exc}")
+        report.record(claim, False)
         return
     report.neutered.append(label)
+    report.record(claim, True)
     print(f"  PASS {label}: green → red on revert → green restored")
 
 
@@ -375,7 +415,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"neuter_check: {root} is not a git checkout", file=sys.stderr)
         return EXIT_USAGE
 
-    report = Report(neutered=[], stayed_green=[], failures=[])
+    report = Report(neutered=[], stayed_green=[], failures=[], results=[])
     if args.only != "scopes":
         for claim in tests:
             check_test(root, args.base, claim, args.timeout, report)
@@ -396,6 +436,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "checked": report.neutered,
                     "stayed_green": report.stayed_green,
                     "failures": report.failures,
+                    # The machine-readable result the verifier records: one entry per named test,
+                    # `proved` True only for green → red → green, and the promises its name carries.
+                    "results": report.results,
                 }
             )
         )

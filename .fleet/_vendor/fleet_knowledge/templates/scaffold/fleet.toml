@@ -1,0 +1,50 @@
+# What this repository is, for the fleet that reads it.
+#
+# `.fleet/fleet.toml` is the ONE repository-side source for how the command tier behaves here.
+# It lives under `.fleet/`, beside the tier, so Fleet keeps nothing at the repository root; paths
+# in it are relative to the repository root all the same.
+# `[fleet.commands] namespace` is the prefix every command is typed under and every
+# cross-reference in the shipped procedures is rewritten to: /{{namespace}}:check, and so on.
+# `set` is the depth of the work loop this repository carries (`core` is the generic loop and
+# everything it names). Keep `namespace` declared even when it is the default prefix: undeclared,
+# the tier renders as the copy its authors keep for themselves, home-only text included, and
+# ships whole.
+# `board_guidance` is the board's vocabulary for those commands — which one each to-do, PRD step
+# and shaping button hands over. `fleet commands sync` writes it with the commands, so it always
+# names the commands this repository has.
+# `[fleet.targets]`, at the end, is what each conventional target the commands name — lint, the
+# unit lane, the stack — runs here.
+[fleet]
+# This file's schema version. `fleet commands sync` upgrades the file in place; leave it as it is.
+version = 2
+board_guidance = ".fleet/board-guidance.json"
+
+[fleet.commands]
+namespace = "{{namespace}}"
+set = "{{set}}"
+
+[fleet.planning]
+# Where new slices go. "areas": every slice names a feature area (a feature map under
+# knowledge/features/) and programs take no new slices. "programs": a slice names an area and may
+# also name a program, as repositories set up before 2026-10-27 do. Leaving the line out means
+# "programs". See docs/design/2026-10-27-planning-without-programs.md.
+mode = "areas"
+# Every slice must name an area: a row without one fails the check. Leaving it out means only a new
+# or changed row fails, and an untouched one is noted.
+require_area = true
+
+[fleet.structure]
+# This repository asserts none of the command tree's own doc-parity invariants; add your own
+# `[[fleet.structure.hygiene_doc_parity]]` tables here as the corpus grows.
+hygiene_doc_parity = []
+
+# Extra tools this repository's builds need, installed by every worker before a session opens.
+# Uncomment and name a script in the repository; the worker runs it, as the agent, the first
+# time and again whenever the script's contents change. The script must be safe to repeat and
+# must not assume root: install into the agent's home, not the system. See
+# docs/guides/connect-your-tools.md, "What the worker needs for your repository".
+# [fleet.session]
+# setup = "scripts/fleet-setup.sh"
+# timeout_seconds = 600
+
+{{targets}}
